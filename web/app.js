@@ -360,6 +360,13 @@ function step(delta) {
 }
 
 /* ---------- command palette ---------- */
+const savedViews = [
+  { label: "view: my cards this week", run: () => { open = "procedures"; render(); } },
+  { label: "view: notes touched today", run: () => { open = "archive"; render(); } },
+  { label: "view: engines and card", run: () => { open = "telemetry"; render(); } },
+  { label: "view: everything on muther", run: () => { projectFilter = "muther"; open = "procedures"; render(); } },
+];
+
 const COMMANDS = [
   { label: "go: status", run: () => setOpen("status") },
   { label: "go: telemetry", run: () => setOpen("telemetry") },
@@ -373,6 +380,8 @@ const COMMANDS = [
   { label: "board: move in-progress cards to done", run: () => (state?.board?.doing || []).forEach((c) => api(`/api/card?action=move&id=${c.id}&direction=done`)) },
   { label: "refresh", run: () => poll() },
 ];
+
+savedViews.forEach((v) => COMMANDS.push(v));
 
 Object.entries(ENGINES).forEach(([key, spec]) => {
   COMMANDS.push({ label: `engine: start ${spec.name}`, run: () => api(`/api/engine?key=${key}&action=start`) });
