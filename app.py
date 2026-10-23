@@ -39,6 +39,7 @@ def main() -> int:
             min_size=(860, 560),
             background_color="#08080a",
             text_select=False,
+            fullscreen=True,
         )
         webview.start()  # blocks until the window closes
     finally:

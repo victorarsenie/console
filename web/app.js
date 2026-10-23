@@ -164,6 +164,7 @@ function renderShell() {
           <div class="glyph">${bay.glyph}</div>
           <div class="huge${size}">${number}</div>
           <div class="cap">${unit || bay.note}</div>
+          ${bayVisual(bay.id, state)}
         </div>
         <div class="copy">${bay.render(state)}</div>
       </div>
@@ -172,6 +173,31 @@ function renderShell() {
   const left = BAYS.slice(0, openIndex).map((bay, i) => spine(bay, i)).join("");
   const right = BAYS.slice(openIndex + 1).map((bay, i) => spine(bay, openIndex + 1 + i)).join("");
   track.innerHTML = left + focused(BAYS[openIndex], openIndex) + right;
+}
+
+function bayVisual(id, s) {
+  if (id === "telemetry") return `<div class="vgraf">${spark(hist)}<div class="cap">vram free, rolling</div></div>`;
+  if (id === "archive") {
+    const rows = s.knowledge.domains || [];
+    const max = Math.max(1, ...rows.map((r) => r.notes));
+    return `<div class="vgraf bars">` + rows.map((r) =>
+      `<div class="brow"><span>${r.name}</span><i style="width:${(r.notes / max) * 100}%"></i><b>${r.notes}</b></div>`).join("") + `</div>`;
+  }
+  if (id === "berth") {
+    const rows = s.projects || [];
+    const max = Math.max(1, ...rows.map((r) => r.open));
+    return `<div class="vgraf bars">` + rows.map((r) =>
+      `<div class="brow"><span>${r.slug}</span><i style="width:${(r.open / max) * 100}%"></i><b>${r.open}</b></div>`).join("") + `</div>`;
+  }
+  if (id === "procedures") {
+    const b = s.board || {};
+    const total = COLUMNS.reduce((a, c) => a + ((b[c] || []).length), 0) || 1;
+    return `<div class="vgraf"><div class="stack">` + COLUMNS.map((c) =>
+      `<i class="${c}" style="width:${((b[c] || []).length / total) * 100}%"></i>`).join("") +
+      `</div><div class="cap">${COLUMNS.map((c) => `${c} ${(b[c] || []).length}`).join("   ")}</div></div>`;
+  }
+  const needs = s.needs || [];
+  return `<div class="vgraf"><div class="cap">${needs.length ? needs.length + " item(s) need you" : "no blockers"}</div></div>`;
 }
 
 function render() {
