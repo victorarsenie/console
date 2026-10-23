@@ -41,13 +41,22 @@ function meter(used, total) {
   return `<div class="meter"><i style="width:${pct}%"></i></div>`;
 }
 
+function captureBar() {
+  return `<div class="panel"><h3>capture</h3><div class="adder">
+    <input id="cap" placeholder="one line - task or finding">
+    <button data-act="capture-card">card</button>
+    <button data-act="capture-note">note</button>
+  </div></div>`;
+}
+
 function renderStatus(s) {
   const needs = s.needs || [];
   const list = needs.length
     ? needs.map((n) => `<div class="row ${n.kind === "alert" ? "bad" : ""}"> - ${esc(n.text)}</div>`).join("")
     : `<div class="row ok">nothing waiting on you</div>`;
   const log = (s.activity || []).map(esc).join("\n") || "idle";
-  return `<div class="panel"><h3>needs you</h3>${list}</div>
+  const cap = captureBar();
+  return cap + `<div class="panel"><h3>needs you</h3>${list}</div>
           <div class="panel"><h3>timeline</h3>${(s.timeline || []).map((e) =>
             `<div class="row dim">${e.kind} - ${esc(e.text)}</div>`).join("") || `<div class="row dim">idle</div>`}</div>`;
 }
@@ -230,6 +239,20 @@ function toast(message, bad) {
 document.addEventListener("click", (event) => {
   // keep a selection alive: a click must not clear what the user highlighted
   if (String(window.getSelection() || "").length > 0) return;
+  if (act === "capture-card" || act === "capture-note") {
+    const input = document.querySelector(".baycard.open #cap");
+    const text = input && input.value.trim();
+    if (!text) { toast("nothing to capture", true); return; }
+    const url = act === "capture-card"
+      ? `/api/card?action=add&title=${encodeURIComponent(text)}&project=`
+      : `/api/note?text=${encodeURIComponent(text)}`;
+    fetch(url, { method: "POST" }).then((r) => r.json()).then((d) => {
+      toast(d.message || (d.ok ? "captured" : "failed"), !d.ok);
+      if (input) input.value = "";
+      poll();
+    });
+    return;
+  }
   const fileRow = event.target.closest("[data-open]");
   if (fileRow && fileRow.dataset.open) {
     fetch(`/api/open?path=${encodeURIComponent(fileRow.dataset.open)}`)
