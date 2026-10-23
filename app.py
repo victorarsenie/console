@@ -39,6 +39,10 @@ class WindowApi:
             return bool(self.window.fullscreen)
         return False
 
+    def minimize(self) -> None:
+        if self.window is not None:
+            self.window.minimize()
+
     def close_window(self) -> None:
         if self.window is not None:
             self.window.destroy()

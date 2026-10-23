@@ -442,6 +442,11 @@ async function winToggle() {
     await document.documentElement.requestFullscreen();
   }
 }
+function winMin() {
+  if (window.pywebview && window.pywebview.api && window.pywebview.api.minimize) {
+    window.pywebview.api.minimize();
+  }
+}
 function winClose() {
   if (window.pywebview && window.pywebview.api && window.pywebview.api.close_window) {
     window.pywebview.api.close_window();
@@ -454,6 +459,8 @@ document.addEventListener("keydown", (event) => {
 window.addEventListener("DOMContentLoaded", () => {
   const full = document.getElementById("win-full");
   const close = document.getElementById("win-close");
+  const min = document.getElementById("win-min");
+  if (min) min.addEventListener("click", winMin);
   if (full) full.addEventListener("click", winToggle);
   if (close) close.addEventListener("click", winClose);
 });
