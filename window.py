@@ -170,6 +170,17 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 
+def free_port(start: int = PORT, tries: int = 8) -> int:
+    import socket
+    for candidate in range(start, start + tries):
+        with socket.socket() as probe:
+            try:
+                probe.bind(("127.0.0.1", candidate)); return candidate
+            except OSError:
+                continue
+    raise SystemExit("no free port")
+
+
 def serve(port: int = PORT) -> ThreadingHTTPServer:
     """Bind the dashboard server; the caller decides where it runs."""
     return ThreadingHTTPServer(("127.0.0.1", port), Handler)
@@ -180,6 +191,7 @@ def main() -> int:
     args = sys.argv[1:]
     if "--port" in args:
         PORT = int(args[args.index("--port") + 1])
+    PORT = free_port(PORT)
     httpd = serve(PORT)
     url = f"http://127.0.0.1:{PORT}/"
     print(f"window: {url}")
@@ -188,6 +200,7 @@ def main() -> int:
             print("window: chrome not found, open the URL manually")
         else:
             flags = [str(CHROME), f"--app={url}", "--window-size=1220,840",
+                     *(["--start-fullscreen"] if "--fullscreen" in args else []),
                      "--no-first-run", "--no-default-browser-check",
                      f"--user-data-dir={Path.home() / '.muther-ui'}"]
             if "--disable-gpu" in args:
