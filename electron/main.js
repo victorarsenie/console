@@ -37,16 +37,27 @@ async function waitForServer(tries = 80) {
   return false;
 }
 
-app.whenReady().then(async () => {
+function startServer() {
   const out = fs.openSync(path.join(__dirname, "server.log"), "a");
-  server = spawn("python.exe", [path.join(ROOT, "window.py")], {
+  const proc = spawn("pythonw.exe", [path.join(ROOT, "window.py")], {
     cwd: ROOT,
     windowsHide: true,
     stdio: ["ignore", out, out],
   });
-  server.on("exit", (code) => log(`server exited ${code}`));
-  log("server started");
-  const ok = await waitForServer();
+  proc.on("exit", (code) => log(`server exited ${code}`));
+  log("server started pid " + proc.pid);
+  return proc;
+}
+
+app.whenReady().then(async () => {
+  server = startServer();
+  let ok = await waitForServer();
+  if (!ok) {
+    log("server did not answer; killing and retrying once");
+    try { server.kill(); } catch (e) {}
+    server = startServer();
+    ok = await waitForServer();
+  }
   const win = new BrowserWindow({
     width: 1360,
     height: 860,
