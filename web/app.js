@@ -37,7 +37,7 @@ function meter(used, total) {
 function renderStatus(s) {
   const needs = s.needs || [];
   const list = needs.length
-    ? needs.map((n) => `<div class="row ${n.kind === "alert" ? "bad" : ""}">Ãƒâ€šÃ‚Â· ${esc(n.text)}</div>`).join("")
+    ? needs.map((n) => `<div class="row ${n.kind === "alert" ? "bad" : ""}">ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· ${esc(n.text)}</div>`).join("")
     : `<div class="row ok">nothing waiting on you</div>`;
   const log = (s.memory.log_lines || []).slice(-6).map(esc).join("\n") || "idle";
   return `<div class="panel"><h3>needs you</h3>${list}</div>
@@ -47,9 +47,9 @@ function renderStatus(s) {
 function renderTelemetry(s) {
   const g = s.gpu, r = s.ram;
   const gpu = g.present
-    ? `<div class="big">${fmt(g.free_mib)}<small>MiB free of ${fmt(g.total_mib)}</small></div>
+    ? `<div class="big"><span data-live="vram-free">${fmt(g.free_mib)}</span><small>MiB free of ${fmt(g.total_mib)}</small></div>
        ${meter(g.used_mib, g.total_mib)}
-       <div class="row">${esc(g.name)} Ãƒâ€šÃ‚Â· util ${g.util_pct}% Ãƒâ€šÃ‚Â· ${g.power_w ?? "--"} W</div>`
+       <div class="row">${esc(g.name)} ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· util ${g.util_pct}% ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· ${g.power_w ?? "--"} W</div>`
     : `<div class="row">no NVIDIA device</div>`;
   const managed = s.managed || {};
   const engines = Object.entries(ENGINES).map(([key, name]) => {
@@ -63,20 +63,20 @@ function renderTelemetry(s) {
   const ports = s.ports.map((p) => `<span class="${p.open ? "on" : ""}">:${p.port} ${p.what}</span>`).join("");
   return `<div class="panel"><h3>card</h3>${gpu}</div>
     <div class="grid2">
-      <div class="panel"><h3>memory</h3><div class="big">${fmt(r.available_mib)}<small>MiB</small></div>
-        ${meter(r.total_mib - r.available_mib, r.total_mib)}<div class="row">load ${r.load_pct}%</div></div>
-      <div class="panel"><h3>storage</h3><div class="big">${s.disk.free_gib}<small>GiB</small></div>
+      <div class="panel"><h3>memory</h3><div class="big"><span data-live="ram">${fmt(r.available_mib)}</span><small>MiB</small></div>
+        ${meter(r.total_mib - r.available_mib, r.total_mib)}<div class="row" data-live="ram-row">load ${r.load_pct}%</div></div>
+      <div class="panel"><h3>storage</h3><div class="big"><span data-live="disk">${s.disk.free_gib}</span><small>GiB</small></div>
         <div class="row">${s.disk.drive} volume</div></div>
     </div>
     <div class="panel"><h3>engines</h3><div class="ports">${ports}</div>${engines}</div>
     <div class="panel"><h3>models on disk</h3>${(s.models || []).map((m) =>
       `<div class="row"><span class="dim">${m.gib} GiB</span> - ${esc(m.name)}</div>`).join("")
       || `<div class="row dim">none</div>`}</div>
-    <div class="panel"><h3>vram free - last ${hist.length} samples</h3>${spark(hist)}</div>`;
+    <div class="panel"><h3>vram free - last ${hist.length} samples</h3><div data-live="spark">${spark(hist)}</div></div>`;
 }
 
 function spark(values) {
-  if (values.length < 2) return `<div class="row dim">collecting samplesâ€¦</div>`;
+  if (values.length < 2) return `<div class="row dim">collecting samplesÃ¢â‚¬Â¦</div>`;
   const w = 260, h = 44;
   const min = Math.min(...values), max = Math.max(...values);
   const span = max - min || 1;
@@ -90,12 +90,12 @@ function spark(values) {
 function renderArchive(s) {
   const domains = (s.knowledge.domains || []).map((d) =>
     `<div class="d">${d.name}<span>${d.notes}</span></div>`).join("");
-  const recent = (s.recent || []).map((r) => `<div class="r">${r.updated} Ãƒâ€šÃ‚Â· ${esc(r.note)}</div>`).join("");
+  const recent = (s.recent || []).map((r) => `<div class="r">${r.updated} ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· ${esc(r.note)}</div>`).join("");
   const hits = results.length
     ? results.map((r) => `<div class="hit"><b>${r.score.toFixed(2)}</b> ${esc(r.note)}<br>${esc(r.answers)}</div>`).join("")
     : "";
   return `<div class="panel"><h3>recall</h3>
-      <div class="adder"><input id="q" placeholder="ask in words ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â BM25 ranks the notes">
+      <div class="adder"><input id="q" placeholder="ask in words ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â BM25 ranks the notes">
       <button data-act="search">search</button></div>${hits}</div>
     <div class="grid2"><div class="panel"><h3>domains</h3>${domains}</div>
       <div class="panel"><h3>recent</h3>${recent}</div></div>`;
@@ -116,12 +116,12 @@ function renderProcedures(s) {
     const cards = board[column] || [];
     const items = cards.map((c) => `<div class="card">
         <div class="t">${esc(c.title)}</div>
-        <div class="meta"><span>${esc(c.project || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â")}</span><span>${c.date || ""}</span></div>
+        <div class="meta"><span>${esc(c.project || "ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â")}</span><span>${c.date || ""}</span></div>
         <div class="acts">
-          <button data-act="card" data-id="${c.id}" data-op="left">ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹</button>
-          <button data-act="card" data-id="${c.id}" data-op="right">ÃƒÂ¢Ã¢â€šÂ¬Ã‚Âº</button>
-          <button data-act="card" data-id="${c.id}" data-op="done">ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“</button>
-          <button class="danger" data-act="card" data-id="${c.id}" data-op="delete">ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¢</button>
+          <button data-act="card" data-id="${c.id}" data-op="left">ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¹</button>
+          <button data-act="card" data-id="${c.id}" data-op="right">ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Âº</button>
+          <button data-act="card" data-id="${c.id}" data-op="done">ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ</button>
+          <button class="danger" data-act="card" data-id="${c.id}" data-op="delete">ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢</button>
         </div></div>`).join("");
     return `<div class="column"><h3>${column}<span>${cards.length}</span></h3>${items || '<div class="empty">empty</div>'}</div>`;
   }).join("");
@@ -170,6 +170,7 @@ function renderShell() {
 function render() {
   if (!state) return;
   renderShell();
+  updateLive();
   $("#dot").className = "dot" + (state.alerts.length ? " bad" : "");
 }
 
@@ -247,8 +248,8 @@ async function poll() {
     const res = await fetch("/api/state", { cache: "no-store" });
     state = await res.json();
     if (state.gpu && state.gpu.present) { hist.push(state.gpu.free_mib); if (hist.length > 90) hist.shift(); }
-    const sig = JSON.stringify(state, (key, value) => (key === "ts" ? undefined : value));
-    if (sig !== lastSig) { lastSig = sig; render(); }
+    const sig = structuralSig(state);
+    if (sig !== lastSig) { lastSig = sig; render(); } else { updateLive(); }
   } catch (err) {
     $("#dot").className = "dot bad";
     toast("collector unreachable", true);
@@ -343,3 +344,42 @@ document.addEventListener("click", (event) => {
   if (cmd) { COMMANDS[Number(cmd.dataset.cmd)].run(); closePalette(); }
   if (event.target.id === "palette") closePalette();
 });
+
+
+/* ---------- live numbers: update in place, never rebuild ---------- */
+function setLive(name, text) {
+  document.querySelectorAll(`[data-live="${name}"]`).forEach((el) => { el.textContent = text; });
+}
+
+function updateLive() {
+  if (!state) return;
+  const g = state.gpu, r = state.ram;
+  if (g.present) {
+    setLive("vram-free", fmt(g.free_mib));
+    setLive("vram-row", `${g.name} Â· util ${g.util_pct}% Â· ${g.power_w ?? "--"} W`);
+    document.querySelectorAll('[data-live="vram-bar"]').forEach((el) => {
+      el.style.width = Math.max(0, Math.min(100, (g.used_mib / g.total_mib) * 100)) + "%";
+    });
+  }
+  setLive("ram", fmt(r.available_mib));
+  setLive("ram-row", `load ${r.load_pct}%`);
+  setLive("disk", state.disk.free_gib);
+  const sparkEl = document.querySelector('[data-live="spark"]');
+  if (sparkEl) sparkEl.innerHTML = spark(hist);
+}
+
+/* structural signature: only changes that need a rebuild */
+function structuralSig(s) {
+  return JSON.stringify({
+    open,
+    alerts: s.alerts,
+    needs: (s.needs || []).map((n) => n.text),
+    board: Object.fromEntries(Object.entries(s.board || {}).map(([k, v]) => [k, v.map((c) => c.id + c.title)])),
+    projects: (s.projects || []).map((p) => p.slug + p.open),
+    knowledge: s.knowledge,
+    models: (s.models || []).map((m) => m.name),
+    managed: s.managed,
+    ports: s.ports.map((p) => p.port + p.open),
+    notes: s.memory.notes + s.memory.map_chars,
+  });
+}
