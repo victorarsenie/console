@@ -95,12 +95,13 @@ def main() -> int:
             min_size=(860, 560),
             background_color="#08080a",
             text_select=True,
-            fullscreen=True,
+            maximized=False,
             js_api=api,
         )
         import tempfile
         from pathlib import Path
         storage = Path(tempfile.gettempdir()) / f"console-ui-{os.getpid()}"
+        threading.Timer(0.6, lambda: api.window.toggle_fullscreen()).start()
         webview.start(storage_path=str(storage))  # blocks until the window closes
     except Exception as exc:
         report_failure(exc)
