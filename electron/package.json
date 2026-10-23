@@ -1,0 +1,13 @@
+{
+  "name": "muther-console",
+  "version": "1.0.0",
+  "description": "Operations console shell over the local dashboard",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "latest"
+  }
+}
