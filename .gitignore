@@ -1,0 +1,9 @@
+node_modules/
+electron/node_modules/
+electron/dist/
+*.log
+console-error.log
+status.json
+engines.json
+board-error.log
+__pycache__/

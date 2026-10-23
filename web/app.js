@@ -434,6 +434,7 @@ function structuralSig(s) {
 
 /* ---------- window controls ---------- */
 async function winToggle() {
+  if (window.consoleShell) { window.consoleShell.toggleFullscreen(); return; }
   if (window.pywebview && window.pywebview.api && window.pywebview.api.toggle_fullscreen) {
     await window.pywebview.api.toggle_fullscreen();
   } else if (document.fullscreenElement) {
@@ -443,11 +444,13 @@ async function winToggle() {
   }
 }
 function winMin() {
+  if (window.consoleShell) { window.consoleShell.minimize(); return; }
   if (window.pywebview && window.pywebview.api && window.pywebview.api.minimize) {
     window.pywebview.api.minimize();
   }
 }
 function winClose() {
+  if (window.consoleShell) { window.consoleShell.close(); return; }
   if (window.pywebview && window.pywebview.api && window.pywebview.api.close_window) {
     window.pywebview.api.close_window();
   }

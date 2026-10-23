@@ -1,6 +1,6 @@
 // Electron shell for the console: starts the Python server, waits for it, then
 // shows the UI in a chrome-less window. The UI itself is unchanged.
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, ipcMain } = require("electron");
 const { spawn } = require("child_process");
 const http = require("http");
 const path = require("path");
@@ -45,11 +45,21 @@ app.whenReady().then(async () => {
     backgroundColor: "#08080a",
     autoHideMenuBar: true,
     fullscreen: true,
-    webPreferences: { nodeIntegration: false, contextIsolation: true },
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, "preload.js"),
+    },
   });
   win.loadURL(ok ? `http://127.0.0.1:${port}/` : "data:text/html,<body style='background:%2308080a;color:%23ffb000;font-family:monospace'>server did not start - check window.py</body>");
+  mainWindow = win;
   win.on("closed", () => { if (server) { server.kill(); server = null; } });
 });
+
+let mainWindow = null;
+ipcMain.on("win:minimize", () => { if (mainWindow) mainWindow.minimize(); });
+ipcMain.on("win:fullscreen", () => { if (mainWindow) mainWindow.setFullScreen(!mainWindow.isFullScreen()); });
+ipcMain.on("win:close", () => { if (mainWindow) mainWindow.close(); });
 
 app.on("window-all-closed", () => {
   if (server) server.kill();
