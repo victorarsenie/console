@@ -1,202 +1,222 @@
-// Muther dashboard: overview, kanban, knowledge, projects. Polls /api/state.
+// Console theatre: five bays, one in focus. Same API, different shape.
+const $ = (sel) => document.querySelector(sel);
+const fmt = (n) => (n ?? 0).toLocaleString();
+const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const COLUMNS = ["backlog", "next", "doing", "done"];
 const ENGINES = { "1": "swift 120k", "2": "coder strata", "3": "swift 64k" };
-const TITLES = { overview: "overview", board: "work board", knowledge: "knowledge", projects: "projects" };
 let state = null;
-let view = "overview";
-const $ = (id) => document.getElementById(id);
+let open = "status";
+let results = [];
 
-/* ---------- helpers ---------- */
-function clock() { $("clock").textContent = new Date().toTimeString().slice(0, 5); }
+/* ---------- bay views ---------- */
+const BAYS = [
+  { id: "status", label: "status", note: "what needs you",
+    number: (s) => (s.alerts.length ? `${s.alerts.length}` : "nominal"),
+    unit: (s) => (s.alerts.length ? "alerts" : ""), render: renderStatus },
+  { id: "telemetry", label: "telemetry", note: "card, ram, engines",
+    number: (s) => (s.gpu.present ? fmt(s.gpu.free_mib) : "--"), unit: () => "MiB free",
+    render: renderTelemetry },
+  { id: "archive", label: "archive", note: "notes and recall",
+    number: (s) => fmt(totalNotes(s)), unit: () => "notes", render: renderArchive },
+  { id: "berth", label: "berth", note: "projects and cards",
+    number: (s) => `${s.projects.length}`, unit: () => "projects", render: renderBerth },
+  { id: "procedures", label: "procedures", note: "board and runs",
+    number: (s) => `${(s.board.doing || []).length}`, unit: () => "in progress",
+    render: renderProcedures },
+];
+
+const totalNotes = (s) => (s.knowledge.domains || []).reduce((a, d) => a + d.notes, 0);
+
+function meter(used, total) {
+  const pct = total > 0 ? Math.max(0, Math.min(100, (used / total) * 100)) : 0;
+  return `<div class="meter"><i style="width:${pct}%"></i></div>`;
+}
+
+function renderStatus(s) {
+  const needs = s.needs || [];
+  const list = needs.length
+    ? needs.map((n) => `<div class="row ${n.kind === "alert" ? "bad" : ""}">· ${esc(n.text)}</div>`).join("")
+    : `<div class="row ok">nothing waiting on you</div>`;
+  const log = (s.memory.log_lines || []).slice(-6).map(esc).join("\n") || "idle";
+  return `<div class="panel"><h3>needs you</h3>${list}</div>
+          <div class="panel"><h3>activity</h3><pre class="log">${log}</pre></div>`;
+}
+
+function renderTelemetry(s) {
+  const g = s.gpu, r = s.ram;
+  const gpu = g.present
+    ? `<div class="big">${fmt(g.free_mib)}<small>MiB free of ${fmt(g.total_mib)}</small></div>
+       ${meter(g.used_mib, g.total_mib)}
+       <div class="row">${esc(g.name)} · util ${g.util_pct}% · ${g.power_w ?? "--"} W</div>`
+    : `<div class="row">no NVIDIA device</div>`;
+  const managed = s.managed || {};
+  const engines = Object.entries(ENGINES).map(([key, name]) => {
+    const rec = managed[key];
+    const up = rec && rec.alive;
+    return `<div class="engine"><span class="name">[${key}] ${name}</span>
+      <span class="state ${up ? "up" : ""}">${up ? "running" : "stopped"}</span>
+      <button data-act="engine" data-key="${key}" data-op="${up ? "stop" : "start"}"
+        class="${up ? "danger" : ""}">${up ? "stop" : "start"}</button></div>`;
+  }).join("");
+  const ports = s.ports.map((p) => `<span class="${p.open ? "on" : ""}">:${p.port} ${p.what}</span>`).join("");
+  return `<div class="panel"><h3>card</h3>${gpu}</div>
+    <div class="grid2">
+      <div class="panel"><h3>memory</h3><div class="big">${fmt(r.available_mib)}<small>MiB</small></div>
+        ${meter(r.total_mib - r.available_mib, r.total_mib)}<div class="row">load ${r.load_pct}%</div></div>
+      <div class="panel"><h3>storage</h3><div class="big">${s.disk.free_gib}<small>GiB</small></div>
+        <div class="row">${s.disk.drive} volume</div></div>
+    </div>
+    <div class="panel"><h3>engines</h3><div class="ports">${ports}</div>${engines}</div>`;
+}
+
+function renderArchive(s) {
+  const domains = (s.knowledge.domains || []).map((d) =>
+    `<div class="d">${d.name}<span>${d.notes}</span></div>`).join("");
+  const recent = (s.recent || []).map((r) => `<div class="r">${r.updated} · ${esc(r.note)}</div>`).join("");
+  const hits = results.length
+    ? results.map((r) => `<div class="hit"><b>${r.score.toFixed(2)}</b> ${esc(r.note)}<br>${esc(r.answers)}</div>`).join("")
+    : "";
+  return `<div class="panel"><h3>recall</h3>
+      <div class="adder"><input id="q" placeholder="ask in words — BM25 ranks the notes">
+      <button data-act="search">search</button></div>${hits}</div>
+    <div class="grid2"><div class="panel"><h3>domains</h3>${domains}</div>
+      <div class="panel"><h3>recent</h3>${recent}</div></div>`;
+}
+
+function renderBerth(s) {
+  return (s.projects || []).map((p) => `<div class="panel">
+      <h3>${esc(p.slug)}</h3>
+      <div class="row">${esc(p.title)}</div>
+      <div class="row dim">${esc(p.answers)}</div>
+      <div class="row dim">${p.open} open card(s)</div></div>`).join("")
+    || `<div class="row dim">no project overlays</div>`;
+}
+
+function renderProcedures(s) {
+  const board = s.board || {};
+  const cols = COLUMNS.map((column) => {
+    const cards = board[column] || [];
+    const items = cards.map((c) => `<div class="card">
+        <div class="t">${esc(c.title)}</div>
+        <div class="meta"><span>${esc(c.project || "—")}</span><span>${c.date || ""}</span></div>
+        <div class="acts">
+          <button data-act="card" data-id="${c.id}" data-op="left">‹</button>
+          <button data-act="card" data-id="${c.id}" data-op="right">›</button>
+          <button data-act="card" data-id="${c.id}" data-op="done">✓</button>
+          <button class="danger" data-act="card" data-id="${c.id}" data-op="delete">✕</button>
+        </div></div>`).join("");
+    return `<div class="column"><h3>${column}<span>${cards.length}</span></h3>${items || '<div class="empty">empty</div>'}</div>`;
+  }).join("");
+  return `<div class="panel"><h3>add</h3><div class="adder">
+      <input id="t" placeholder="new card">
+      <button data-act="add">add</button></div></div>
+    <div class="board">${cols}</div>`;
+}
+
+/* ---------- shell ---------- */
+function renderShell() {
+  const theatre = $("#theatre");
+  theatre.innerHTML = BAYS.map((bay) => {
+    const openHere = bay.id === open;
+    return `<section class="bay ${openHere ? "open" : ""}" data-bay="${bay.id}">
+      <div class="cover">
+        <div class="label">${bay.label}</div>
+        <div class="number">${bay.number(state)}<small>${bay.unit(state)}</small></div>
+        <div class="note">${bay.note}</div>
+      </div>
+      <div class="head"><h2>${bay.label}</h2>
+        <div class="big">${bay.number(state)}<small>${bay.unit(state)}</small></div></div>
+      <div class="body">${openHere ? bay.render(state) : ""}</div>
+    </section>`;
+  }).join("");
+}
+
+function render() {
+  if (!state) return;
+  renderShell();
+  $("#dot").className = "dot" + (state.alerts.length ? " bad" : "");
+}
+
+/* ---------- actions ---------- */
+async function api(path) {
+  const res = await fetch(path, { method: "POST" });
+  const data = await res.json();
+  if (data.message) toast(data.message, !data.ok);
+  await poll();
+}
+
 function toast(message, bad) {
-  const el = $("toast");
+  const el = $("#toast");
   el.textContent = message || "";
   el.style.color = bad ? "var(--bad)" : "var(--soft)";
   clearTimeout(toast.timer);
   toast.timer = setTimeout(() => (el.textContent = ""), 6000);
 }
-function bar(el, used, total) {
-  el.style.width = (total > 0 ? Math.max(0, Math.min(100, (used / total) * 100)) : 0) + "%";
-}
-async function post(url) {
-  const res = await fetch(url, { method: "POST" });
-  return res.json();
-}
 
-/* ---------- views ---------- */
-function setView(name) {
-  view = name;
-  document.querySelectorAll(".nav").forEach((b) => b.classList.toggle("active", b.dataset.view === name));
-  document.querySelectorAll(".view").forEach((s) => (s.hidden = s.id !== "view-" + name));
-  $("view-title").textContent = TITLES[name] || name;
-  if (name === "knowledge") $("search-q").focus();
+document.addEventListener("click", (event) => {
+  const bay = event.target.closest(".bay");
+  if (bay && !event.target.closest("button") && !event.target.closest("input")) {
+    open = bay.dataset.bay;
+    render();
+    return;
+  }
+  const button = event.target.closest("button[data-act]");
+  if (!button) return;
+  const act = button.dataset.act;
+  if (act === "engine") api(`/api/engine?key=${button.dataset.key}&action=${button.dataset.op}`);
+  else if (act === "card") api(`/api/card?action=move&id=${button.dataset.id}&direction=${button.dataset.op === "delete" ? "" : button.dataset.op}`);
+  else if (act === "add") {
+    const input = document.querySelector(".bay.open #t");
+    const title = input?.value.trim();
+    if (title) api(`/api/card?action=add&title=${encodeURIComponent(title)}&project=`);
+  } else if (act === "search") {
+    const query = document.querySelector(".bay.open #q")?.value.trim();
+    if (query) search(query);
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (["INPUT", "SELECT"].includes(event.target.tagName)) {
+    if (event.key === "Enter" && event.target.id === "t") {
+      const v = event.target.value.trim();
+      if (v) api(`/api/card?action=add&title=${encodeURIComponent(v)}&project=`);
+      event.target.value = "";
+    }
+    if (event.key === "Enter" && event.target.id === "q") {
+      const v = event.target.value.trim();
+      if (v) search(v);
+    }
+    return;
+  }
+  const index = BAYS.findIndex((b) => b.id === open);
+  if (/^[1-5]$/.test(event.key)) { open = BAYS[Number(event.key) - 1].id; render(); }
+  else if (event.key === "ArrowRight") { open = BAYS[Math.min(BAYS.length - 1, index + 1)].id; render(); }
+  else if (event.key === "ArrowLeft") { open = BAYS[Math.max(0, index - 1)].id; render(); }
+  else if (event.key.toLowerCase() === "r") poll();
+  else if (ENGINES[event.key]) {
+    const rec = (state?.managed || {})[event.key];
+    api(`/api/engine?key=${event.key}&action=${rec && rec.alive ? "stop" : "start"}`);
+  }
+});
+
+async function search(query) {
+  const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+  const data = await res.json();
+  results = data.results || [];
   render();
 }
 
-function renderOverview(s) {
-  const g = s.gpu, r = s.ram;
-  if (g.present) {
-    $("vram-free").textContent = g.free_mib.toLocaleString();
-    bar($("vram-bar"), g.used_mib, g.total_mib);
-    $("vram-row").textContent = `${g.name} — ${g.used_mib} / ${g.total_mib} MiB · util ${g.util_pct}% · ${g.power_w ?? "--"} W`;
-  }
-  $("ram-free").textContent = r.available_mib.toLocaleString();
-  bar($("ram-bar"), r.total_mib - r.available_mib, r.total_mib);
-  $("ram-row").textContent = `of ${r.total_mib.toLocaleString()} · load ${r.load_pct}%`;
-  $("disk-free").textContent = s.disk.free_gib;
-  $("disk-row").textContent = `${s.disk.drive} volume`;
-
-  $("ports").innerHTML = s.ports.map((p) =>
-    `<span class="${p.open ? "on" : ""}">:${p.port} ${p.what}</span>`).join("");
-
-  const managed = s.managed || {};
-  const rows = Object.entries(managed).map(([key, rec]) => `
-    <div class="engine">
-      <span class="name">[${key}] ${rec.name}</span>
-      <span class="state ${rec.alive ? "up" : ""}">${rec.alive ? "running" : "stopped"}</span>
-      <span class="dim">pid ${rec.pid ?? "-"}</span>
-      ${rec.alive
-        ? `<button class="danger" onclick="engine('${key}','stop')">stop</button>`
-        : `<button onclick="engine('${key}','start')">start</button>`}
-    </div>`);
-  const idle = Object.entries(ENGINES).filter(([k]) => !managed[k]).map(([key, name]) => `
-    <div class="engine">
-      <span class="name">[${key}] ${name}</span>
-      <span class="state">stopped</span>
-      <button onclick="engine('${key}','start')">start</button>
-    </div>`);
-  $("managed").innerHTML = rows.concat(idle).join("") || `<div class="empty">no engines</div>`;
-
-  const needs = s.needs || [];
-  $("needs").innerHTML = needs.length
-    ? needs.map((n) => `<div class="item ${n.kind === "alert" ? "bad" : ""}">· ${n.text}</div>`).join("")
-    : `<div class="item ok">nothing waiting on you</div>`;
-
-  $("notes").textContent = s.knowledge ? s.knowledge.domains.reduce((a, d) => a + d.notes, 0) : "--";
-  $("map-row").textContent = `${s.knowledge.domains.length} domains · ${s.knowledge.pending} pending`;
-  $("log").textContent = (s.memory.log_lines || []).slice(-6).join("\n") || "idle";
-  $("dot").className = "dot" + (s.alerts.length ? " bad" : "");
-}
-
-function renderBoard(s) {
-  const board = s.board || {};
-  $("card-project").innerHTML = ["", ...(s.projects || []).map((p) => p.slug)]
-    .map((slug) => `<option value="${slug}">${slug || "no project"}</option>`).join("");
-  $("board").innerHTML = COLUMNS.map((column) => {
-    const cards = board[column] || [];
-    const items = cards.map((c) => `
-      <div class="card">
-        <div class="t">${escapeHtml(c.title)}</div>
-        <div class="meta"><span>${escapeHtml(c.project || "—")}</span><span>${c.date || ""}</span></div>
-        <div class="acts">
-          <button onclick="card('move','${c.id}','left')" title="move left">‹</button>
-          <button onclick="card('move','${c.id}','right')" title="move right">›</button>
-          <button onclick="card('move','${c.id}','done')" title="done">✓</button>
-          <button class="danger" onclick="card('delete','${c.id}','')" title="delete">✕</button>
-        </div>
-      </div>`).join("");
-    return `<div class="column"><h3>${column}<span>${cards.length}</span></h3>${items || '<div class="empty">empty</div>'}</div>`;
-  }).join("");
-}
-
-function renderKnowledge(s) {
-  const k = s.knowledge || { domains: [], pending: 0 };
-  $("domains").innerHTML = k.domains.map((d) =>
-    `<div class="d">${d.name}<span>${d.notes}</span></div>`).join("") ||
-    `<div class="empty">no domains</div>`;
-  $("recent").innerHTML = (s.recent || []).map((r) =>
-    `<div class="r"><b>${r.updated}</b> · ${escapeHtml(r.note)}</div>`).join("");
-}
-
-function renderProjects(s) {
-  $("projects").innerHTML = (s.projects || []).map((p) => `
-    <div class="project">
-      <h3>${escapeHtml(p.title)}</h3>
-      <p>${escapeHtml(p.answers || "")}</p>
-      <div class="foot"><span>${p.slug}</span><span>${p.open} open card(s)</span></div>
-    </div>`).join("") || `<div class="empty">no project overlays</div>`;
-}
-
-function render() {
-  if (!state) return;
-  if (view === "overview") renderOverview(state);
-  else if (view === "board") renderBoard(state);
-  else if (view === "knowledge") renderKnowledge(state);
-  else if (view === "projects") renderProjects(state);
-}
-
-function escapeHtml(text) {
-  return String(text).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-}
-
-/* ---------- actions ---------- */
-async function engine(key, action) {
-  const data = await post(`/api/engine?key=${key}&action=${action}`);
-  toast(data.message, !data.ok);
-  poll();
-}
-async function card(action, id, direction) {
-  const data = await post(`/api/card?action=${action}&id=${id}&direction=${direction}`);
-  if (data.message) toast(data.message, !data.ok);
-  poll();
-}
-async function search(query) {
-  $("search-results").innerHTML = `<div class="hit">searching…</div>`;
-  const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-  const data = await res.json();
-  $("search-results").innerHTML = (data.results || []).map((r) => `
-    <div class="hit"><b>${r.score.toFixed(2)}</b> ${escapeHtml(r.note)}<br><span>${escapeHtml(r.answers)}</span></div>`).join("")
-    || `<div class="hit">no match${data.message ? ": " + escapeHtml(data.message) : ""}</div>`;
-}
-
-/* ---------- polling ---------- */
 async function poll() {
   try {
     const res = await fetch("/api/state", { cache: "no-store" });
     state = await res.json();
-    renderProjects(state);
     render();
   } catch (err) {
-    $("dot").className = "dot bad";
+    $("#dot").className = "dot bad";
     toast("collector unreachable", true);
   }
 }
 
-/* ---------- wiring ---------- */
-document.querySelectorAll(".nav").forEach((b) =>
-  b.addEventListener("click", () => setView(b.dataset.view)));
-
-$("card-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const title = $("card-title").value.trim();
-  if (!title) return;
-  const project = $("card-project").value;
-  const data = await post(`/api/card?action=add&title=${encodeURIComponent(title)}&project=${encodeURIComponent(project)}`);
-  if (!data.ok) toast(data.message || "could not add", true);
-  $("card-title").value = "";
-  poll();
-});
-
-$("search-form").addEventListener("submit", (event) => {
-  event.preventDefault();
-  const q = $("search-q").value.trim();
-  if (q) search(q);
-});
-
-document.addEventListener("keydown", (event) => {
-  if (event.target.tagName === "INPUT" || event.target.tagName === "SELECT") return;
-  const key = event.key.toLowerCase();
-  if (ENGINES[key]) {
-    const rec = (state?.managed || {})[key];
-    engine(key, rec && rec.alive ? "stop" : "start");
-  } else if (key === "s") {
-    Object.keys(state?.managed || {}).forEach((k) => engine(k, "stop"));
-  } else if (key === "b") setView("board");
-  else if (key === "k") setView("knowledge");
-  else if (key === "o") setView("overview");
-  else if (key === "p") setView("projects");
-  else if (key === "r") poll();
-});
-
-clock(); setInterval(clock, 1000);
+function tick() { $("#clock").textContent = new Date().toTimeString().slice(0, 8); }
+tick(); setInterval(tick, 1000);
 poll(); setInterval(poll, 3000);

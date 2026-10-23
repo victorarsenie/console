@@ -116,3 +116,32 @@ button.danger:hover { background: rgba(255,107,94,.12); border-color: var(--bad)
   color: var(--soft); text-transform: uppercase; }
 .project p { margin: 0 0 10px; font-size: 11px; color: var(--dim); line-height: 1.5; }
 .project .foot { display: flex; justify-content: space-between; font-size: 10px; color: var(--dim); }
+
+/* ---- theatre shell: five bays, one in focus ---- */
+.theatre { flex: 1; display: flex; gap: 12px; padding: 16px 20px; overflow: hidden; }
+.bay { flex: 1 1 0; min-width: 0; border: 1px solid var(--line); background: var(--panel);
+  display: flex; flex-direction: column; cursor: pointer; transition: flex-grow .35s cubic-bezier(.16,.84,.26,1), border-color .2s; }
+.bay:hover { border-color: #5a4118; }
+.bay.open { flex: 18 1 0; border-color: var(--amber); cursor: default;
+  background: linear-gradient(160deg, rgba(255,176,0,.07), transparent 55%), var(--panel); }
+.bay .cover { padding: 18px 16px; display: flex; flex-direction: column; gap: 10px; }
+.bay.open .cover { display: none; }
+.bay .label { font-size: 10px; letter-spacing: .32em; text-transform: uppercase; color: var(--dim); }
+.bay .number { font-size: 34px; line-height: 1; color: var(--amber); }
+.bay .number small { font-size: 10px; letter-spacing: .18em; color: var(--dim); margin-left: 6px; text-transform: uppercase; }
+.bay .note { font-size: 11px; color: var(--dim); line-height: 1.45; }
+.bay.open .body { display: flex; }
+.bay .body { display: none; flex-direction: column; flex: 1; min-height: 0; padding: 16px 18px; overflow: auto; }
+.bay.open .head { display: flex; }
+.bay .head { display: none; align-items: baseline; gap: 14px; padding: 14px 18px 8px; border-bottom: 1px solid var(--line); }
+.bay .head h2 { margin: 0; font-size: 11px; letter-spacing: .34em; color: var(--soft); text-transform: uppercase; }
+.bay .head .big { font-size: 26px; margin-left: auto; }
+.bay .head .big small { font-size: 10px; color: var(--dim); letter-spacing: .18em; margin-left: 6px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grid2 .panel { padding: 10px 12px; }
+.bay .panel { border: 1px solid var(--line); background: #0a0a0c; padding: 10px 12px; margin-bottom: 10px; }
+.bay .panel h3 { margin: 0 0 8px; font-size: 9px; letter-spacing: .26em; color: var(--dim); text-transform: uppercase; font-weight: 500; }
+.foot .hint { margin-left: 14px; font-size: 10px; letter-spacing: .14em; color: var(--dim); }
+.foot .hint b { color: var(--amber); font-weight: 400; }
+
+.theatre { flex-direction: row; }
