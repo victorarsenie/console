@@ -132,7 +132,9 @@ function renderProcedures(s) {
         </div></div>`).join("");
     return `<div class="column"><h3>${column}<span>${cards.length}</span></h3>${items || '<div class="empty">empty</div>'}</div>`;
   }).join("");
-  return `<div class="panel"><h3>add</h3><div class="adder">
+  const flows = `<div class="panel"><h3>workflows</h3>` + (window.__flows || []).map((f) =>
+      `<div class="row"><button data-act="flow" data-name="${f.name}">run</button> ${f.label}</div>`).join("") + `</div>`;
+  return flows + `<div class="panel"><h3>add</h3><div class="adder">
       <input id="t" placeholder="ask in words - BM25 ranks the notes">
       <button data-act="add">add</button></div></div>
     <div class="board">${cols}</div>`;
@@ -244,7 +246,10 @@ document.addEventListener("click", (event) => {
   const act = button.dataset.act;
   if (act === "engine") api(`/api/engine?key=${button.dataset.key}&action=${button.dataset.op}`);
   else if (act === "card") api(`/api/card?action=move&id=${button.dataset.id}&direction=${button.dataset.op === "delete" ? "" : button.dataset.op}`);
-  else if (act === "add") {
+  else if (act === "flow") {
+    fetch(`/api/run?name=${encodeURIComponent(button.dataset.name)}`, { method: "POST" })
+      .then((r) => r.json()).then((d) => { toast(d.message, !d.ok); poll(); });
+  } else if (act === "add") {
     const input = document.querySelector(".baycard.open #t");
     const title = input?.value.trim();
     if (title) api(`/api/card?action=add&title=${encodeURIComponent(title)}&project=`);
@@ -285,6 +290,14 @@ async function search(query) {
   render();
 }
 
+async function loadFlows() {
+  try {
+    const res = await fetch("/api/workflows", { cache: "no-store" });
+    const data = await res.json();
+    window.__flows = data.workflows || [];
+  } catch (err) { window.__flows = []; }
+}
+
 async function poll() {
   try {
     const res = await fetch("/api/state", { cache: "no-store" });
@@ -300,6 +313,8 @@ async function poll() {
 
 function tick() { $("#clock").textContent = new Date().toTimeString().slice(0, 8); }
 tick(); setInterval(tick, 1000);
+loadFlows();
+setTimeout(loadFlows, 600);
 poll(); setInterval(poll, 3000);
 
 $("#prev").addEventListener("click", () => step(-1));
