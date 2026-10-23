@@ -44,7 +44,7 @@ function meter(used, total) {
 function renderStatus(s) {
   const needs = s.needs || [];
   const list = needs.length
-    ? needs.map((n) => `<div class="row ${n.kind === "alert" ? "bad" : ""}"> - - ${esc(n.text)}</div>`).join("")
+    ? needs.map((n) => `<div class="row ${n.kind === "alert" ? "bad" : ""}"> - ${esc(n.text)}</div>`).join("")
     : `<div class="row ok">nothing waiting on you</div>`;
   const log = (s.activity || []).map(esc).join("\n") || "idle";
   return `<div class="panel"><h3>needs you</h3>${list}</div>
@@ -57,7 +57,7 @@ function renderTelemetry(s) {
   const gpu = g.present
     ? `<div class="big"><span data-live="vram-free">${fmt(g.free_mib)}</span><small>MiB free of ${fmt(g.total_mib)}</small></div>
        ${meter(g.used_mib, g.total_mib)}
-       <div class="row">${esc(g.name)}  - - util ${g.util_pct}%  - - ${g.power_w ?? "--"} W</div>`
+       <div class="row">${esc(g.name)}  - util ${g.util_pct}%  - ${g.power_w ?? "--"} W</div>`
     : `<div class="row">no NVIDIA device</div>`;
   const managed = s.managed || {};
   const engines = Object.entries(ENGINES).map(([key, spec]) => {

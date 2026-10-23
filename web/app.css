@@ -221,3 +221,5 @@ body.isfull .wincontrols { position: fixed; }
 .engine .state { text-align: left; }
 .engine button { justify-self: end; }
 .copy .grid2 { align-items: start; }
+
+.engine .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
