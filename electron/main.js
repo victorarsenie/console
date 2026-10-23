@@ -14,11 +14,12 @@ const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..");
 let server = null;
+let mainWindow = null;
 let port = 8123;
 
 function probe(p) {
   return new Promise((resolve) => {
-    const req = http.get({ host: "127.0.0.1", port: p, path: "/", timeout: 700 }, (res) => {
+    const req = http.get({ host: "127.0.0.1", port: p, path: "/", timeout: 250 }, (res) => {
       res.resume();
       resolve(res.statusCode === 200);
     });
@@ -29,7 +30,7 @@ function probe(p) {
 
 async function waitForServer(tries = 80) {
   for (let i = 0; i < tries; i++) {
-    for (let p = 8123; p < 8131; p++) {
+    for (let p = 8123; p < 8126; p++) {
       if (await probe(p)) { port = p; return true; }
     }
     await new Promise((r) => setTimeout(r, 250));
@@ -49,39 +50,47 @@ function startServer() {
   return proc;
 }
 
+ipcMain.on("win:minimize", () => { if (mainWindow) mainWindow.minimize(); });
+ipcMain.on("win:fullscreen", () => { if (mainWindow) mainWindow.setFullScreen(!mainWindow.isFullScreen()); });
+ipcMain.on("win:close", () => { if (mainWindow) mainWindow.close(); });
+
 app.whenReady().then(async () => {
-  server = startServer();
-  let ok = await waitForServer();
-  if (!ok) {
-    log("server did not answer; killing and retrying once");
-    try { server.kill(); } catch (e) {}
-    server = startServer();
-    ok = await waitForServer();
-  }
-  const win = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1360,
     height: 860,
     minWidth: 900,
     minHeight: 600,
     backgroundColor: "#08080a",
     autoHideMenuBar: true,
-    fullscreen: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, "preload.js"),
     },
   });
-  win.loadURL(ok ? `http://127.0.0.1:${port}/` : "data:text/html,<body style='background:%2308080a;color:%23ffb000;font-family:monospace'>server did not start - check window.py</body>");
-  mainWindow = win;
-  win.webContents.on("render-process-gone", (_e, details) => log("render gone: " + JSON.stringify(details)));
-  win.on("closed", () => { if (server) { server.kill(); server = null; } });
-});
 
-let mainWindow = null;
-ipcMain.on("win:minimize", () => { if (mainWindow) mainWindow.minimize(); });
-ipcMain.on("win:fullscreen", () => { if (mainWindow) mainWindow.setFullScreen(!mainWindow.isFullScreen()); });
-ipcMain.on("win:close", () => { if (mainWindow) mainWindow.close(); });
+  const loading = "data:text/html," + encodeURIComponent(
+    '<body style="background:#08080a;color:#ffb000;font-family:monospace;padding:40px">' +
+    'MU/TH/UR 6000<br><br><span id="s">starting services...</span></body>');
+  mainWindow.loadURL(loading);
+  mainWindow.setFullScreen(true);
+  mainWindow.webContents.on("render-process-gone", (_e, d) => log("render gone: " + JSON.stringify(d)));
+  mainWindow.on("closed", () => { mainWindow = null; if (server) { server.kill(); server = null; } });
+
+  server = startServer();
+  let ok = await waitForServer(24);
+  if (!ok) {
+    log("first attempt failed; retrying");
+    try { server.kill(); } catch (e) {}
+    server = startServer();
+    ok = await waitForServer(40);
+  }
+  log("server ready: " + ok + " port " + port);
+  if (ok) mainWindow.loadURL(`http://127.0.0.1:${port}/`);
+  else mainWindow.loadURL("data:text/html," + encodeURIComponent(
+    '<body style="background:#08080a;color:#ff6b5e;font-family:monospace;padding:40px">' +
+    'server did not start - see electron/server.log</body>'));
+});
 
 app.on("window-all-closed", () => {
   if (server) server.kill();
