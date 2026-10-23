@@ -209,6 +209,21 @@ def activity(limit: int = 6) -> list[str]:
     return events[:limit]
 
 
+def timeline(limit: int = 8) -> list[dict]:
+    """Commits, note writes and card moves in one list, newest first."""
+    events = []
+    for line in activity(limit * 2):
+        events.append({"kind": "commit", "text": line})
+    for row in recent_notes(limit):
+        events.append({"kind": "note", "text": f"{row['note']} - {row['updated']}"})
+    for column, cards in work_state().items():
+        for card in cards:
+            if card.get("date"):
+                events.append({"kind": "card", "text": f"{column}: {card['title']} - {card['date']}"})
+    events.sort(key=lambda e: e["text"].split("-")[-1].strip(), reverse=True)
+    return events[:limit]
+
+
 def work_state() -> dict:
     try:
         import work
@@ -296,6 +311,7 @@ def collect() -> dict:
         "gpu": g, "ram": r, "disk": disk(), "ports": ports(),
         "processes": procs, "managed": managed_from(rows),
         "memory": memory_layer(), "alerts": collect_alerts(), "activity": activity(),
+        "timeline": timeline(),
         "models": models(), "recent": recent_notes(),
         "board": work_state(), "projects": projects(),
         "knowledge": knowledge(), "needs": needs(),

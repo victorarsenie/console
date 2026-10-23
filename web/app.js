@@ -48,7 +48,8 @@ function renderStatus(s) {
     : `<div class="row ok">nothing waiting on you</div>`;
   const log = (s.activity || []).map(esc).join("\n") || "idle";
   return `<div class="panel"><h3>needs you</h3>${list}</div>
-          <div class="panel"><h3>activity</h3><pre class="log">${log}</pre></div>`;
+          <div class="panel"><h3>timeline</h3>${(s.timeline || []).map((e) =>
+            `<div class="row dim">${e.kind} - ${esc(e.text)}</div>`).join("") || `<div class="row dim">idle</div>`}</div>`;
 }
 
 function renderTelemetry(s) {

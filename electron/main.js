@@ -3,6 +3,13 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const { spawn } = require("child_process");
 const http = require("http");
+const fs = require("fs");
+const LOG = path.join(__dirname, "electron-error.log");
+function log(line) {
+  try { fs.appendFileSync(LOG, `${new Date().toISOString()} ${line}\n`); } catch (e) {}
+}
+process.on("uncaughtException", (err) => { log("uncaught: " + (err && err.stack || err)); });
+process.on("unhandledRejection", (err) => { log("rejection: " + err); });
 const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..");
@@ -31,11 +38,14 @@ async function waitForServer(tries = 80) {
 }
 
 app.whenReady().then(async () => {
+  const out = fs.openSync(path.join(__dirname, "server.log"), "a");
   server = spawn("python.exe", [path.join(ROOT, "window.py")], {
     cwd: ROOT,
     windowsHide: true,
-    stdio: "ignore",
+    stdio: ["ignore", out, out],
   });
+  server.on("exit", (code) => log(`server exited ${code}`));
+  log("server started");
   const ok = await waitForServer();
   const win = new BrowserWindow({
     width: 1360,
@@ -53,6 +63,7 @@ app.whenReady().then(async () => {
   });
   win.loadURL(ok ? `http://127.0.0.1:${port}/` : "data:text/html,<body style='background:%2308080a;color:%23ffb000;font-family:monospace'>server did not start - check window.py</body>");
   mainWindow = win;
+  win.webContents.on("render-process-gone", (_e, details) => log("render gone: " + JSON.stringify(details)));
   win.on("closed", () => { if (server) { server.kill(); server = null; } });
 });
 
