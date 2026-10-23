@@ -154,6 +154,19 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as exc:
                 self._json({"ok": False, "message": str(exc)}, 500)
             return
+        if parsed.path == "/api/note":
+            import subprocess, sys
+            text = (query.get("text") or [""])[0].strip()
+            if not text:
+                self._json({"ok": False, "message": "empty note"}, 400)
+                return
+            kb = Path(r"E:\AI\memory\ai-unlimited-memory\kb.py")
+            res = subprocess.run([sys.executable, str(kb), "pending", text],
+                                 cwd=str(kb.parent), capture_output=True, text=True,
+                                 timeout=30, creationflags=0x08000000)
+            out = (res.stdout or res.stderr).strip().splitlines()
+            self._json({"ok": res.returncode == 0, "message": out[-1] if out else "queued"})
+            return
         if parsed.path == "/api/run":
             import workflows
             ok, message = workflows.run((query.get("name") or [""])[0])
