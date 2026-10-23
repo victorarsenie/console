@@ -33,9 +33,16 @@
   <span class="spacer"></span>
   <span class="hint"><b>1–5</b> bay</span>
   <span class="hint"><b>← →</b> move</span>
+  <span class="hint"><b>/</b> commands</span>
   <span class="hint"><b>r</b> refresh</span>
 </footer>
 
 <script src="/app.js"></script>
+<div id="palette" class="palette" hidden>
+  <div class="palette-box">
+    <input id="palette-q" placeholder="type a command: card, search, telemetry, start 1, stop 2 ..." autocomplete="off">
+    <div id="palette-list" class="palette-list"></div>
+  </div>
+</div>
 </body>
 </html>

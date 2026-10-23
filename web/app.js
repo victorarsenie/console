@@ -266,3 +266,80 @@ function step(delta) {
   const next = Math.max(0, Math.min(BAYS.length - 1, index + delta));
   if (next !== index) { open = BAYS[next].id; render(); }
 }
+
+/* ---------- command palette ---------- */
+const COMMANDS = [
+  { label: "go: status", run: () => setOpen("status") },
+  { label: "go: telemetry", run: () => setOpen("telemetry") },
+  { label: "go: archive", run: () => setOpen("archive") },
+  { label: "go: berth", run: () => setOpen("berth") },
+  { label: "go: procedures", run: () => setOpen("procedures") },
+  { label: "engine: start swift 120k", run: () => api("/api/engine?key=1&action=start") },
+  { label: "engine: start coder strata", run: () => api("/api/engine?key=2&action=start") },
+  { label: "engine: start swift 64k", run: () => api("/api/engine?key=3&action=start") },
+  { label: "engine: stop all", run: () => api("/api/engine?key=1&action=stop") },
+  { label: "board: move in-progress cards to done", run: () => (state?.board?.doing || []).forEach((c) => api(`/api/card?action=move&id=${c.id}&direction=done`)) },
+  { label: "refresh", run: () => poll() },
+];
+
+let paletteIndex = 0;
+
+function setOpen(bay) { open = bay; render(); }
+
+function openPalette() {
+  const box = $("#palette");
+  box.hidden = false;
+  const input = $("#palette-q");
+  input.value = "";
+  paletteIndex = 0;
+  renderPalette("");
+  input.focus();
+}
+
+function closePalette() {
+  $("#palette").hidden = true;
+}
+
+function renderPalette(filter) {
+  const term = filter.toLowerCase();
+  const items = COMMANDS.filter((c) => c.label.toLowerCase().includes(term));
+  paletteIndex = Math.min(paletteIndex, Math.max(0, items.length - 1));
+  $("#palette-list").innerHTML = items.map((c, i) =>
+    `<div class="cmd ${i === paletteIndex ? "on" : ""}" data-cmd="${COMMANDS.indexOf(c)}">${esc(c.label)}</div>`).join("")
+    || `<div class="cmd">no command</div>`;
+  return items;
+}
+
+function runPalette() {
+  const term = $("#palette-q").value.trim();
+  if (!term) return;
+  const items = COMMANDS.filter((c) => c.label.toLowerCase().includes(term.toLowerCase()));
+  if (!items.length) { toast("no such command", true); return; }
+  items[Math.min(paletteIndex, items.length - 1)].run();
+  closePalette();
+}
+
+document.addEventListener("keydown", (event) => {
+  const paletteOpen = !$("#palette").hidden;
+  if (event.key === "/" && !paletteOpen && !["INPUT", "SELECT"].includes(event.target.tagName)) {
+    event.preventDefault();
+    openPalette();
+    return;
+  }
+  if (!paletteOpen) return;
+  const items = COMMANDS.filter((c) => c.label.toLowerCase().includes($("#palette-q").value.trim().toLowerCase()));
+  if (event.key === "Escape") closePalette();
+  else if (event.key === "Enter") runPalette();
+  else if (event.key === "ArrowDown") { paletteIndex = Math.min(items.length - 1, paletteIndex + 1); renderPalette($("#palette-q").value); }
+  else if (event.key === "ArrowUp") { paletteIndex = Math.max(0, paletteIndex - 1); renderPalette($("#palette-q").value); }
+});
+
+document.addEventListener("input", (event) => {
+  if (event.target.id === "palette-q") { paletteIndex = 0; renderPalette(event.target.value); }
+});
+
+document.addEventListener("click", (event) => {
+  const cmd = event.target.closest(".cmd[data-cmd]");
+  if (cmd) { COMMANDS[Number(cmd.dataset.cmd)].run(); closePalette(); }
+  if (event.target.id === "palette") closePalette();
+});

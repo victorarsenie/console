@@ -168,3 +168,15 @@ button.danger:hover { background: rgba(255,107,94,.12); border-color: var(--bad)
   color: rgba(255,176,0,.55); letter-spacing: 0; }
 .spine .vnum { font-size: 11px; color: var(--dim); letter-spacing: .08em; }
 .copy .panel { border-color: #1b1407; }
+
+/* command palette */
+.palette { position: fixed; inset: 0; z-index: 30; background: rgba(4,4,5,.72);
+  backdrop-filter: blur(2px); display: grid; place-items: start center; padding-top: 14vh; }
+.palette-box { width: min(620px, 86vw); border: 1px solid rgba(255,176,0,.35);
+  background: #0a0a0c; box-shadow: 0 24px 70px rgba(0,0,0,.65); }
+.palette-box input { width: 100%; font: inherit; font-size: 13px; color: var(--soft);
+  background: transparent; border: 0; border-bottom: 1px solid #241906; padding: 13px 16px; outline: none; }
+.palette-list { max-height: 46vh; overflow: auto; }
+.cmd { padding: 9px 16px; font-size: 12px; color: var(--dim); cursor: pointer;
+  border-bottom: 1px solid #14100a; }
+.cmd:hover, .cmd.on { background: rgba(255,176,0,.08); color: var(--soft); }
