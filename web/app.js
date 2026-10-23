@@ -244,14 +244,16 @@ function toast(message, bad) {
 document.addEventListener("click", (event) => {
   // keep a selection alive: a click must not clear what the user highlighted
   if (String(window.getSelection() || "").length > 0) return;
-  if (act === "clear-filter") { projectFilter = ""; render(); return; }
+  if (event.target.closest("[data-act='clear-filter']")) { projectFilter = ""; render(); return; }
   const projRow = event.target.closest("[data-proj]");
   if (projRow) { projectFilter = projRow.dataset.proj; open = "procedures"; render(); return; }
-  if (act === "capture-card" || act === "capture-note") {
+  const capBtn = event.target.closest("[data-act='capture-card'], [data-act='capture-note']");
+  if (capBtn) {
+    const which = capBtn.dataset.act;
     const input = document.querySelector(".baycard.open #cap");
     const text = input && input.value.trim();
     if (!text) { toast("nothing to capture", true); return; }
-    const url = act === "capture-card"
+    const url = which === "capture-card"
       ? `/api/card?action=add&title=${encodeURIComponent(text)}&project=`
       : `/api/note?text=${encodeURIComponent(text)}`;
     fetch(url, { method: "POST" }).then((r) => r.json()).then((d) => {
