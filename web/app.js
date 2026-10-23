@@ -16,6 +16,7 @@ let lastSig = "";
 let open = (new URLSearchParams(location.search).get("bay")) || "status";
 let results = [];
 const hist = [];
+let projectFilter = "";
 
 /* ---------- bay views ---------- */
 const BAYS = [
@@ -119,7 +120,7 @@ function renderArchive(s) {
 }
 
 function renderBerth(s) {
-  return (s.projects || []).map((p) => `<div class="panel">
+  return (s.projects || []).map((p) => `<div class="panel" data-proj="${esc(p.slug)}" style="cursor:pointer">
       <h3>${esc(p.slug)}</h3>
       <div class="row">${esc(p.title)}</div>
       <div class="row dim">${esc(p.answers)}</div>
@@ -129,8 +130,12 @@ function renderBerth(s) {
 
 function renderProcedures(s) {
   const board = s.board || {};
+  const filter = projectFilter.toLowerCase();
+  const chip = filter
+    ? `<div class="row dim">project: ${esc(projectFilter)} <button data-act="clear-filter">clear</button></div>`
+    : "";
   const cols = COLUMNS.map((column) => {
-    const cards = board[column] || [];
+    const cards = (board[column] || []).filter((c) => !filter || (c.project || "").toLowerCase() === filter);
     const items = cards.map((c) => `<div class="card">
         <div class="t">${esc(c.title)}</div>
         <div class="meta"><span>${esc(c.project || " - ")}</span><span>${c.date || ""}</span></div>
@@ -144,7 +149,7 @@ function renderProcedures(s) {
   }).join("");
   const flows = `<div class="panel"><h3>workflows</h3>` + (window.__flows || []).map((f) =>
       `<div class="row"><button data-act="flow" data-name="${f.name}">run</button> ${f.label}</div>`).join("") + `</div>`;
-  return flows + `<div class="panel"><h3>add</h3><div class="adder">
+  return chip + flows + `<div class="panel"><h3>add</h3><div class="adder">
       <input id="t" placeholder="ask in words - BM25 ranks the notes">
       <button data-act="add">add</button></div></div>
     <div class="board">${cols}</div>`;
@@ -239,6 +244,9 @@ function toast(message, bad) {
 document.addEventListener("click", (event) => {
   // keep a selection alive: a click must not clear what the user highlighted
   if (String(window.getSelection() || "").length > 0) return;
+  if (act === "clear-filter") { projectFilter = ""; render(); return; }
+  const projRow = event.target.closest("[data-proj]");
+  if (projRow) { projectFilter = projRow.dataset.proj; open = "procedures"; render(); return; }
   if (act === "capture-card" || act === "capture-note") {
     const input = document.querySelector(".baycard.open #cap");
     const text = input && input.value.trim();
