@@ -56,7 +56,7 @@ def main() -> int:
             height=840,
             min_size=(860, 560),
             background_color="#08080a",
-            text_select=False,
+            text_select=True,
             fullscreen=True,
             js_api=api,
         )

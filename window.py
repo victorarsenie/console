@@ -60,6 +60,35 @@ def search_knowledge(query: str) -> dict:
             "message": "" if results else res.stdout.strip()[:200]}
 
 
+ALLOWED_ROOTS = (
+    r"E:\AI\memory\ai-unlimited-memory",
+    r"E:\AI\console",
+    r"E:\AI\muther",
+    r"E:\AI\research",
+)
+
+
+def open_path(raw: str, dry: bool = False) -> tuple[bool, str]:
+    """Open a file with the OS default application, inside allowed roots only."""
+    import os
+    from pathlib import Path
+    try:
+        path = Path(raw).expanduser().resolve()
+    except Exception as exc:
+        return False, f"bad path: {exc}"
+    if not any(str(path).lower().startswith(root.lower()) for root in ALLOWED_ROOTS):
+        return False, "outside the allowed roots"
+    if not path.is_file():
+        return False, "not a file"
+    if dry:
+        return True, f"would open {path.name}"
+    try:
+        os.startfile(str(path))
+        return True, f"opened {path.name}"
+    except Exception as exc:
+        return False, str(exc)
+
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code: int, body: bytes, ctype: str) -> None:
         self.send_response(code)
@@ -79,6 +108,11 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(collector.collect())
             except Exception as exc:
                 self._json({"error": str(exc)}, 500)
+            return
+        if path == "/api/open":
+            query = parse_qs(urlparse(self.path).query)
+            ok, message = open_path((query.get("path") or [""])[0], bool(query.get("dry")))
+            self._json({"ok": ok, "message": message})
             return
         if path == "/api/search":
             query = (parse_qs(urlparse(self.path).query).get("q") or [""])[0].strip()

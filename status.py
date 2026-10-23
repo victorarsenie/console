@@ -160,7 +160,8 @@ def models(limit: int = 6) -> list[dict]:
     rows = []
     for p in folder.glob("*.gguf"):
         try:
-            rows.append({"name": p.stem, "gib": round(p.stat().st_size / 1073741824, 1)})
+            rows.append({"name": p.stem, "gib": round(p.stat().st_size / 1073741824, 1),
+                         "path": str(p)})
         except OSError:
             continue
     return sorted(rows, key=lambda r: -r["gib"])[:limit]
@@ -183,7 +184,8 @@ def recent_notes(limit: int = 5) -> list[dict]:
                 stamp = line.split(":", 1)[1].strip()
                 break
         if stamp:
-            rows.append({"note": str(p.relative_to(kb)).replace("\\", "/"), "updated": stamp})
+            rows.append({"note": str(p.relative_to(kb)).replace("\\", "/"), "updated": stamp,
+                         "path": str(p)})
     return sorted(rows, key=lambda r: r["updated"], reverse=True)[:limit]
 
 

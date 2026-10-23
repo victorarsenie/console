@@ -208,3 +208,6 @@ button.danger:hover { background: rgba(255,107,94,.12); border-color: var(--bad)
 .wincontrols button { background: rgba(8,8,10,.82); padding: 4px 10px; font-size: 12px;
   letter-spacing: .1em; }
 body.isfull .wincontrols { position: fixed; }
+
+[data-open] { cursor: pointer; }
+[data-open]:hover { color: var(--amber); }

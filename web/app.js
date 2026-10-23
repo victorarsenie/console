@@ -77,7 +77,7 @@ function renderTelemetry(s) {
     </div>
     <div class="panel"><h3>engines</h3><div class="ports">${ports}</div>${engines}</div>
     <div class="panel"><h3>models on disk</h3>${(s.models || []).map((m) =>
-      `<div class="row"><span class="dim">${m.gib} GiB</span> - ${esc(m.name)}</div>`).join("")
+      `<div class="row file" data-open="${esc(m.path || "")}"><span class="dim">${m.gib} GiB</span> - ${esc(m.name)}</div>`).join("")
       || `<div class="row dim">none</div>`}</div>
     <div class="panel"><h3>vram free - last ${hist.length} samples</h3><div data-live="spark">${spark(hist)}</div></div>`;
 }
@@ -97,7 +97,7 @@ function spark(values) {
 function renderArchive(s) {
   const domains = (s.knowledge.domains || []).map((d) =>
     `<div class="d">${d.name}<span>${d.notes}</span></div>`).join("");
-  const recent = (s.recent || []).map((r) => `<div class="r">${r.updated} - ${esc(r.note)}</div>`).join("");
+  const recent = (s.recent || []).map((r) => `<div class="r" data-open="${esc(r.path || "")}">${r.updated} - ${esc(r.note)}</div>`).join("");
   const hits = results.length
     ? results.map((r) => `<div class="hit"><b>${r.score.toFixed(2)}</b> ${esc(r.note)}<br>${esc(r.answers)}</div>`).join("")
     : "";
