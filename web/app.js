@@ -3,7 +3,10 @@ const $ = (sel) => document.querySelector(sel);
 const fmt = (n) => (n ?? 0).toLocaleString();
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const COLUMNS = ["backlog", "next", "doing", "done"];
-const ENGINES = { "1": "swift 120k", "2": "coder strata", "3": "swift 64k" };
+const ENGINES = {
+  "1": "strata-flash-coder-150k", "2": "swift-27b-120k-MTP", "3": "swift-27b-131k",
+  "4": "swift-27b-80k-MTP", "5": "old-27b-128k", "6": "flash-next-262k",
+};
 let state = null;
 let lastSig = "";
 let open = "status";
@@ -37,9 +40,9 @@ function meter(used, total) {
 function renderStatus(s) {
   const needs = s.needs || [];
   const list = needs.length
-    ? needs.map((n) => `<div class="row ${n.kind === "alert" ? "bad" : ""}">ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· ${esc(n.text)}</div>`).join("")
+    ? needs.map((n) => `<div class="row ${n.kind === "alert" ? "bad" : ""}">ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚- ${esc(n.text)}</div>`).join("")
     : `<div class="row ok">nothing waiting on you</div>`;
-  const log = (s.memory.log_lines || []).slice(-6).map(esc).join("\n") || "idle";
+  const log = (s.activity || []).map(esc).join("\n") || "idle";
   return `<div class="panel"><h3>needs you</h3>${list}</div>
           <div class="panel"><h3>activity</h3><pre class="log">${log}</pre></div>`;
 }
@@ -49,7 +52,7 @@ function renderTelemetry(s) {
   const gpu = g.present
     ? `<div class="big"><span data-live="vram-free">${fmt(g.free_mib)}</span><small>MiB free of ${fmt(g.total_mib)}</small></div>
        ${meter(g.used_mib, g.total_mib)}
-       <div class="row">${esc(g.name)} ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· util ${g.util_pct}% ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· ${g.power_w ?? "--"} W</div>`
+       <div class="row">${esc(g.name)} ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚- util ${g.util_pct}% ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚- ${g.power_w ?? "--"} W</div>`
     : `<div class="row">no NVIDIA device</div>`;
   const managed = s.managed || {};
   const engines = Object.entries(ENGINES).map(([key, name]) => {
@@ -76,7 +79,7 @@ function renderTelemetry(s) {
 }
 
 function spark(values) {
-  if (values.length < 2) return `<div class="row dim">collecting samplesÃ¢â‚¬Â¦</div>`;
+  if (values.length < 2) return `<div class="row dim">collecting samplesÃ¢â‚¬¦</div>`;
   const w = 260, h = 44;
   const min = Math.min(...values), max = Math.max(...values);
   const span = max - min || 1;
@@ -90,12 +93,12 @@ function spark(values) {
 function renderArchive(s) {
   const domains = (s.knowledge.domains || []).map((d) =>
     `<div class="d">${d.name}<span>${d.notes}</span></div>`).join("");
-  const recent = (s.recent || []).map((r) => `<div class="r">${r.updated} ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· ${esc(r.note)}</div>`).join("");
+  const recent = (s.recent || []).map((r) => `<div class="r">${r.updated} ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚- ${esc(r.note)}</div>`).join("");
   const hits = results.length
     ? results.map((r) => `<div class="hit"><b>${r.score.toFixed(2)}</b> ${esc(r.note)}<br>${esc(r.answers)}</div>`).join("")
     : "";
   return `<div class="panel"><h3>recall</h3>
-      <div class="adder"><input id="q" placeholder="ask in words ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â BM25 ranks the notes">
+      <div class="adder"><input id="q" placeholder="ask in words ÃƒÆ’Ã‚¢Ãƒ¢Ã¢â‚¬Å¡Ã‚¬Ãƒ¢Ã¢â€š¬Ã‚ BM25 ranks the notes">
       <button data-act="search">search</button></div>${hits}</div>
     <div class="grid2"><div class="panel"><h3>domains</h3>${domains}</div>
       <div class="panel"><h3>recent</h3>${recent}</div></div>`;
@@ -116,12 +119,12 @@ function renderProcedures(s) {
     const cards = board[column] || [];
     const items = cards.map((c) => `<div class="card">
         <div class="t">${esc(c.title)}</div>
-        <div class="meta"><span>${esc(c.project || "ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â")}</span><span>${c.date || ""}</span></div>
+        <div class="meta"><span>${esc(c.project || "ÃƒÆ’Ã‚¢Ãƒ¢Ã¢â‚¬Å¡Ã‚¬Ãƒ¢Ã¢â€š¬Ã‚")}</span><span>${c.date || ""}</span></div>
         <div class="acts">
-          <button data-act="card" data-id="${c.id}" data-op="left">ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¹</button>
-          <button data-act="card" data-id="${c.id}" data-op="right">ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Âº</button>
-          <button data-act="card" data-id="${c.id}" data-op="done">ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ</button>
-          <button class="danger" data-act="card" data-id="${c.id}" data-op="delete">ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢</button>
+          <button data-act="card" data-id="${c.id}" data-op="left">ÃƒÆ’Ã‚¢Ãƒ¢Ã¢â‚¬Å¡Ã‚¬Ãƒâ€šÃ‚¹</button>
+          <button data-act="card" data-id="${c.id}" data-op="right">ÃƒÆ’Ã‚¢Ãƒ¢Ã¢â‚¬Å¡Ã‚¬Ãƒâ€šÃ‚º</button>
+          <button data-act="card" data-id="${c.id}" data-op="done">ÃƒÆ’Ã‚¢Ãƒâ€¦Ã¢â‚¬Å“Ãƒ¢Ã¢â€š¬Ã…"</button>
+          <button class="danger" data-act="card" data-id="${c.id}" data-op="delete">ÃƒÆ’Ã‚¢Ãƒâ€¦Ã¢â‚¬Å“Ãƒ¢Ã¢â€š¬Ã‚¢</button>
         </div></div>`).join("");
     return `<div class="column"><h3>${column}<span>${cards.length}</span></h3>${items || '<div class="empty">empty</div>'}</div>`;
   }).join("");
@@ -356,7 +359,7 @@ function updateLive() {
   const g = state.gpu, r = state.ram;
   if (g.present) {
     setLive("vram-free", fmt(g.free_mib));
-    setLive("vram-row", `${g.name} Â· util ${g.util_pct}% Â· ${g.power_w ?? "--"} W`);
+    setLive("vram-row", `${g.name} - util ${g.util_pct}% - ${g.power_w ?? "--"} W`);
     document.querySelectorAll('[data-live="vram-bar"]').forEach((el) => {
       el.style.width = Math.max(0, Math.min(100, (g.used_mib / g.total_mib) * 100)) + "%";
     });

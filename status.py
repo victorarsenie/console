@@ -187,6 +187,26 @@ def recent_notes(limit: int = 5) -> list[dict]:
     return sorted(rows, key=lambda r: r["updated"], reverse=True)[:limit]
 
 
+def activity(limit: int = 6) -> list[str]:
+    """Real activity: recent commits and edited notes, not injection log noise."""
+    import subprocess as sp
+    events = []
+    for repo in (r"E:\AI\console", r"E:\AI\muther", r"E:\AI\memory\ai-unlimited-memory"):
+        try:
+            out = sp.run(["git", "-C", repo, "log", "-3", "--pretty=%ad %s", "--date=short"],
+                         capture_output=True, text=True, timeout=6,
+                         creationflags=0x08000000).stdout.strip()
+        except Exception:
+            out = ""
+        name = os.path.basename(repo)
+        for line in out.splitlines():
+            if line.strip():
+                events.append(f"{name}: {line.strip()}")
+    for row in recent_notes(limit):
+        events.append(f"{row['note']} updated {row['updated']}")
+    return events[:limit]
+
+
 def work_state() -> dict:
     try:
         import work
@@ -273,7 +293,7 @@ def collect() -> dict:
         "ts": datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds"),
         "gpu": g, "ram": r, "disk": disk(), "ports": ports(),
         "processes": procs, "managed": managed_from(rows),
-        "memory": memory_layer(), "alerts": collect_alerts(),
+        "memory": memory_layer(), "alerts": collect_alerts(), "activity": activity(),
         "models": models(), "recent": recent_notes(),
         "board": work_state(), "projects": projects(),
         "knowledge": knowledge(), "needs": needs(),

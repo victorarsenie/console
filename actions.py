@@ -29,9 +29,12 @@ LLAMA = Path(r"E:\AI\engines\llama")
 STRATA = Path(r"E:\AI\engines\strata")
 
 ENGINES = {
-    "1": {"name": "swift 120k", "bat": LLAMA / "run_swift_IQ3XXS_120k_k8v4_MTP.bat"},
-    "2": {"name": "coder strata", "bat": STRATA / "run-coder-iq1_m.bat"},
-    "3": {"name": "swift 64k agent", "bat": LLAMA / "run_swift_64k_q8_MTP_agent.bat"},
+    "1": {"name": "strata-flash-coder-150k", "ctx": 150000, "bat": STRATA / "run-coder-iq1_m.bat"},
+    "2": {"name": "swift-27b-120k-MTP", "ctx": 120000, "bat": LLAMA / "run_swift_IQ3XXS_120k_k8v4_MTP.bat"},
+    "3": {"name": "swift-27b-131k", "ctx": 131072, "bat": LLAMA / "run_swift_IQ3S_131k_k8v4.bat"},
+    "4": {"name": "swift-27b-80k-MTP", "ctx": 80000, "bat": LLAMA / "run_swift_IQ3S_80k_k8v4_MTP.bat"},
+    "5": {"name": "old-27b-128k", "ctx": 131072, "bat": LLAMA / "run_3.8_vision_128k.bat"},
+    "6": {"name": "flash-next-262k", "ctx": 262144, "bat": STRATA / "run-iq2_xs.bat"},
 }
 
 CREATE_NEW_CONSOLE = 0x00000010

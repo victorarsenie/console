@@ -4,7 +4,7 @@ Two faces, one collector, one set of engine guards.
 
 | face | launch | RAM | when |
 |---|---|---|---|
-| **board** (default) | `muther.bat` | **25â€“31 MB** | always â€” runs fine while a model is pinned |
+| **board** (default) | `muther.bat` | **25-31 MB** | always - runs fine while a model is pinned |
 | **dashboard** | `muther-web.bat` | ~550 MB (94 python + 457 WebView2) | when no model is loaded |
 | terminal board | `python tui.py` | 17 MB | inside an existing terminal |
 | Chrome app | `python window.py --open` | 529 MB | fallback if WebView2 is missing |
@@ -26,7 +26,7 @@ Engines: `1` swift 120k, `2` coder strata, `3` swift 64k. Registry in `actions.p
 
 ## Guards (why `actions.py` exists)
 
-- Refuses to start while **:8080 is occupied** â€” one arm at a time, or the next
+- Refuses to start while **:8080 is occupied** - one arm at a time, or the next
   process silently talks to a stale model.
 - Refuses a second start while an engine it manages is alive.
 - Stops only pids it recorded (`engines.json`), killing the `.bat` tree.
@@ -63,7 +63,7 @@ were not re-captured; they render from the same data path and raise no error.
 
 ## Inspiration
 
-The interface idea comes from **Eric Michaud / Easy Machine AI** â€” the video *"Build an Obsidian BACKEND Not a Second Brain!"* and its public demo at https://hq.easymachineai.com. What we borrowed is the *layout idea*: one workspace in focus at a time, large covers with a single number, a rail of sections, a footer of key hints. His app itself (an Obsidian plugin, sold through his Skool tier) is not part of this repository, and no code, assets, palette or fonts were taken from it.
+The interface idea comes from **Eric Michaud / Easy Machine AI** - the video *"Build an Obsidian BACKEND Not a Second Brain!"* and its public demo at https://hq.easymachineai.com. What we borrowed is the *layout idea*: one workspace in focus at a time, large covers with a single number, a rail of sections, a footer of key hints. His app itself (an Obsidian plugin, sold through his Skool tier) is not part of this repository, and no code, assets, palette or fonts were taken from it.
 
 The demo's own tools list also credits **Quipano's Obsidian Skills repository**, which shaped how we think about per-folder agent instructions; our equivalent is knowledge/*/_domain.md plus the generated maps in E:\AI\memory\ai-unlimited-memory.
 
