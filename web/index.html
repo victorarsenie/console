@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MU/TH/UR 6000</title>
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div id="boot" class="boot">
+  <div class="boot-inner">
+    <div class="boot-line">MU/TH/UR 6000</div>
+    <div class="boot-line dim">core .................. online</div>
+    <div class="boot-line dim">knowledge layer ....... mounted</div>
+    <div class="boot-line dim">work board ............ loaded</div>
+    <div class="boot-line dim">engines ............... polling</div>
+  </div>
+</div>
+
+<div class="app">
+  <nav class="rail">
+    <div class="logo">MU/TH/UR</div>
+    <button class="nav active" data-view="overview">overview</button>
+    <button class="nav" data-view="board">board</button>
+    <button class="nav" data-view="knowledge">knowledge</button>
+    <button class="nav" data-view="projects">projects</button>
+    <div class="rail-foot">
+      <span id="dot" class="dot"></span>
+      <span id="clock">--:--</span>
+    </div>
+  </nav>
+
+  <main>
+    <header class="top">
+      <h1 id="view-title">overview</h1>
+      <span id="toast" class="toast"></span>
+    </header>
+
+    <section id="view-overview" class="view">
+      <div class="grid">
+        <section class="panel span6">
+          <h2>power / vram</h2>
+          <div class="big"><span id="vram-free">--</span><span class="unit">MiB free</span></div>
+          <div class="meter"><i id="vram-bar"></i></div>
+          <div class="row" id="vram-row">--</div>
+        </section>
+        <section class="panel span3">
+          <h2>memory</h2>
+          <div class="big"><span id="ram-free">--</span><span class="unit">MiB</span></div>
+          <div class="meter"><i id="ram-bar"></i></div>
+          <div class="row dim" id="ram-row">--</div>
+        </section>
+        <section class="panel span3">
+          <h2>storage</h2>
+          <div class="big"><span id="disk-free">--</span><span class="unit">GiB</span></div>
+          <div class="row dim" id="disk-row">--</div>
+        </section>
+
+        <section class="panel span6">
+          <h2>engines</h2>
+          <div id="ports" class="ports"></div>
+          <div id="managed" class="managed"></div>
+        </section>
+        <section class="panel span6">
+          <h2>needs you</h2>
+          <div id="needs" class="needs"></div>
+        </section>
+
+        <section class="panel span4">
+          <h2>knowledge</h2>
+          <div class="big"><span id="notes">--</span><span class="unit">notes</span></div>
+          <div class="row dim" id="map-row">--</div>
+        </section>
+        <section class="panel span8">
+          <h2>activity</h2>
+          <pre id="log" class="log">--</pre>
+        </section>
+      </div>
+    </section>
+
+    <section id="view-board" class="view" hidden>
+      <form id="card-form" class="adder">
+        <input id="card-title" placeholder="new card, e.g. split 05-speed out of the addendum" autocomplete="off">
+        <select id="card-project"></select>
+        <button type="submit">add</button>
+      </form>
+      <div class="board" id="board"></div>
+    </section>
+
+    <section id="view-knowledge" class="view" hidden>
+      <form id="search-form" class="adder">
+        <input id="search-q" placeholder="ask a question in words; BM25 ranks the notes" autocomplete="off">
+        <button type="submit">search</button>
+      </form>
+      <div id="search-results" class="results"></div>
+      <div class="grid">
+        <section class="panel span5">
+          <h2>domains</h2>
+          <div id="domains" class="domains"></div>
+        </section>
+        <section class="panel span7">
+          <h2>recently updated</h2>
+          <div id="recent" class="recent"></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="view-projects" class="view" hidden>
+      <div id="projects" class="projects"></div>
+    </section>
+  </main>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
