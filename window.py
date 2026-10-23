@@ -109,6 +109,10 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as exc:
                 self._json({"error": str(exc)}, 500)
             return
+        if path == "/api/workflows":
+            import workflows
+            self._json({"workflows": workflows.list_workflows()})
+            return
         if path == "/api/open":
             query = parse_qs(urlparse(self.path).query)
             ok, message = open_path((query.get("path") or [""])[0], bool(query.get("dry")))
@@ -149,6 +153,11 @@ class Handler(BaseHTTPRequestHandler):
                     self._json({"ok": False, "message": f"unknown action: {action}"}, 400)
             except Exception as exc:
                 self._json({"ok": False, "message": str(exc)}, 500)
+            return
+        if parsed.path == "/api/run":
+            import workflows
+            ok, message = workflows.run((query.get("name") or [""])[0])
+            self._json({"ok": ok, "message": message})
             return
         if parsed.path != "/api/engine":
             self._json({"ok": False, "message": "unknown endpoint"}, 404)
