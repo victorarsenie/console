@@ -40,7 +40,7 @@ function meter(used, total) {
 function renderStatus(s) {
   const needs = s.needs || [];
   const list = needs.length
-    ? needs.map((n) => `<div class="row ${n.kind === "alert" ? "bad" : ""}">Ãƒâ€šÃ‚Â- ${esc(n.text)}</div>`).join("")
+    ? needs.map((n) => `<div class="row ${n.kind === "alert" ? "bad" : ""}"> - - ${esc(n.text)}</div>`).join("")
     : `<div class="row ok">nothing waiting on you</div>`;
   const log = (s.activity || []).map(esc).join("\n") || "idle";
   return `<div class="panel"><h3>needs you</h3>${list}</div>
@@ -52,7 +52,7 @@ function renderTelemetry(s) {
   const gpu = g.present
     ? `<div class="big"><span data-live="vram-free">${fmt(g.free_mib)}</span><small>MiB free of ${fmt(g.total_mib)}</small></div>
        ${meter(g.used_mib, g.total_mib)}
-       <div class="row">${esc(g.name)} Ãƒâ€šÃ‚Â- util ${g.util_pct}% Ãƒâ€šÃ‚Â- ${g.power_w ?? "--"} W</div>`
+       <div class="row">${esc(g.name)}  - - util ${g.util_pct}%  - - ${g.power_w ?? "--"} W</div>`
     : `<div class="row">no NVIDIA device</div>`;
   const managed = s.managed || {};
   const engines = Object.entries(ENGINES).map(([key, name]) => {
@@ -79,7 +79,7 @@ function renderTelemetry(s) {
 }
 
 function spark(values) {
-  if (values.length < 2) return `<div class="row dim">collecting samplesÃ¢â‚¬¦</div>`;
+  if (values.length < 2) return `<div class="row dim">collecting samples - </div>`;
   const w = 260, h = 44;
   const min = Math.min(...values), max = Math.max(...values);
   const span = max - min || 1;
@@ -119,12 +119,12 @@ function renderProcedures(s) {
     const cards = board[column] || [];
     const items = cards.map((c) => `<div class="card">
         <div class="t">${esc(c.title)}</div>
-        <div class="meta"><span>${esc(c.project || "ÃƒÆ’Ã‚¢Ãƒ¢Ã¢â‚¬Å¡Ã‚¬Ãƒ¢Ã¢â€š¬Ã‚")}</span><span>${c.date || ""}</span></div>
+        <div class="meta"><span>${esc(c.project || " - ")}</span><span>${c.date || ""}</span></div>
         <div class="acts">
-          <button data-act="card" data-id="${c.id}" data-op="left">ÃƒÆ’Ã‚¢Ãƒ¢Ã¢â‚¬Å¡Ã‚¬Ãƒâ€šÃ‚¹</button>
-          <button data-act="card" data-id="${c.id}" data-op="right">ÃƒÆ’Ã‚¢Ãƒ¢Ã¢â‚¬Å¡Ã‚¬Ãƒâ€šÃ‚º</button>
-          <button data-act="card" data-id="${c.id}" data-op="done">ÃƒÆ’Ã‚¢Ãƒâ€¦Ã¢â‚¬Å“Ãƒ¢Ã¢â€š¬Ã…"</button>
-          <button class="danger" data-act="card" data-id="${c.id}" data-op="delete">ÃƒÆ’Ã‚¢Ãƒâ€¦Ã¢â‚¬Å“Ãƒ¢Ã¢â€š¬Ã‚¢</button>
+          <button data-act="card" data-id="${c.id}" data-op="left"> - </button>
+          <button data-act="card" data-id="${c.id}" data-op="right"> - </button>
+          <button data-act="card" data-id="${c.id}" data-op="done"> - "</button>
+          <button class="danger" data-act="card" data-id="${c.id}" data-op="delete"> - </button>
         </div></div>`).join("");
     return `<div class="column"><h3>${column}<span>${cards.length}</span></h3>${items || '<div class="empty">empty</div>'}</div>`;
   }).join("");
