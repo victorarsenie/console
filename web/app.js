@@ -4,12 +4,16 @@ const fmt = (n) => (n ?? 0).toLocaleString();
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const COLUMNS = ["backlog", "next", "doing", "done"];
 const ENGINES = {
-  "1": "strata-flash-coder-150k", "2": "swift-27b-120k-MTP", "3": "swift-27b-131k",
-  "4": "swift-27b-80k-MTP", "5": "old-27b-128k", "6": "flash-next-262k",
+  "1": { name: "strata-flash-coder-150k", ctx: "150k" },
+  "2": { name: "swift-27b-120k-MTP", ctx: "120k" },
+  "3": { name: "swift-27b-131k", ctx: "131k" },
+  "4": { name: "swift-27b-80k-MTP", ctx: "80k" },
+  "5": { name: "old-27b-128k", ctx: "131k" },
+  "6": { name: "flash-next-262k", ctx: "262k" },
 };
 let state = null;
 let lastSig = "";
-let open = "status";
+let open = (new URLSearchParams(location.search).get("bay")) || "status";
 let results = [];
 const hist = [];
 
@@ -55,10 +59,10 @@ function renderTelemetry(s) {
        <div class="row">${esc(g.name)}  - - util ${g.util_pct}%  - - ${g.power_w ?? "--"} W</div>`
     : `<div class="row">no NVIDIA device</div>`;
   const managed = s.managed || {};
-  const engines = Object.entries(ENGINES).map(([key, name]) => {
+  const engines = Object.entries(ENGINES).map(([key, spec]) => {
     const rec = managed[key];
     const up = rec && rec.alive;
-    return `<div class="engine"><span class="name">[${key}] ${name}</span>
+    return `<div class="engine"><span class="name">[${key}] ${spec.name} <span class="dim">${spec.ctx}</span></span>
       <span class="state ${up ? "up" : ""}">${up ? "running" : "stopped"}</span>
       <button data-act="engine" data-key="${key}" data-op="${up ? "stop" : "start"}"
         class="${up ? "danger" : ""}">${up ? "stop" : "start"}</button></div>`;
@@ -285,6 +289,11 @@ const COMMANDS = [
   { label: "board: move in-progress cards to done", run: () => (state?.board?.doing || []).forEach((c) => api(`/api/card?action=move&id=${c.id}&direction=done`)) },
   { label: "refresh", run: () => poll() },
 ];
+
+Object.entries(ENGINES).forEach(([key, spec]) => {
+  COMMANDS.push({ label: `engine: start ${spec.name}`, run: () => api(`/api/engine?key=${key}&action=start`) });
+  COMMANDS.push({ label: `engine: stop ${spec.name}`, run: () => api(`/api/engine?key=${key}&action=stop`) });
+});
 
 let paletteIndex = 0;
 
