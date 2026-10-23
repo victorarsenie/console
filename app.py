@@ -44,7 +44,22 @@ class WindowApi:
             self.window.destroy()
 
 
+def free_port(start: int = 8123, tries: int = 8) -> int:
+    """First port we can actually bind; a stale server must not crash the app."""
+    import socket
+    for candidate in range(start, start + tries):
+        with socket.socket() as probe:
+            try:
+                probe.bind(("127.0.0.1", candidate))
+                return candidate
+            except OSError:
+                continue
+    raise SystemExit("no free port for the console")
+
+
 def main() -> int:
+    global PORT
+    PORT = free_port(PORT)
     httpd = window.serve(PORT)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     try:

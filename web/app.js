@@ -202,6 +202,7 @@ function bayVisual(id, s) {
 
 function render() {
   if (!state) return;
+  if (String(window.getSelection() || "").length > 0) return;
   renderShell();
   updateLive();
   $("#dot").className = "dot" + (state.alerts.length ? " bad" : "");
@@ -224,6 +225,14 @@ function toast(message, bad) {
 }
 
 document.addEventListener("click", (event) => {
+  // keep a selection alive: a click must not clear what the user highlighted
+  if (String(window.getSelection() || "").length > 0) return;
+  const fileRow = event.target.closest("[data-open]");
+  if (fileRow && fileRow.dataset.open) {
+    fetch(`/api/open?path=${encodeURIComponent(fileRow.dataset.open)}`)
+      .then((r) => r.json()).then((d) => toast(d.message, !d.ok));
+    return;
+  }
   const bay = event.target.closest(".baycard");
   if (bay && !event.target.closest("button") && !event.target.closest("input")) {
     open = bay.dataset.bay;
