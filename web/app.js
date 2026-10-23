@@ -40,7 +40,7 @@ function meter(used, total) {
 function renderStatus(s) {
   const needs = s.needs || [];
   const list = needs.length
-    ? needs.map((n) => `<div class="row ${n.kind === "alert" ? "bad" : ""}">ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚- ${esc(n.text)}</div>`).join("")
+    ? needs.map((n) => `<div class="row ${n.kind === "alert" ? "bad" : ""}">Ãƒâ€šÃ‚Â- ${esc(n.text)}</div>`).join("")
     : `<div class="row ok">nothing waiting on you</div>`;
   const log = (s.activity || []).map(esc).join("\n") || "idle";
   return `<div class="panel"><h3>needs you</h3>${list}</div>
@@ -52,7 +52,7 @@ function renderTelemetry(s) {
   const gpu = g.present
     ? `<div class="big"><span data-live="vram-free">${fmt(g.free_mib)}</span><small>MiB free of ${fmt(g.total_mib)}</small></div>
        ${meter(g.used_mib, g.total_mib)}
-       <div class="row">${esc(g.name)} ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚- util ${g.util_pct}% ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚- ${g.power_w ?? "--"} W</div>`
+       <div class="row">${esc(g.name)} Ãƒâ€šÃ‚Â- util ${g.util_pct}% Ãƒâ€šÃ‚Â- ${g.power_w ?? "--"} W</div>`
     : `<div class="row">no NVIDIA device</div>`;
   const managed = s.managed || {};
   const engines = Object.entries(ENGINES).map(([key, name]) => {
@@ -93,12 +93,12 @@ function spark(values) {
 function renderArchive(s) {
   const domains = (s.knowledge.domains || []).map((d) =>
     `<div class="d">${d.name}<span>${d.notes}</span></div>`).join("");
-  const recent = (s.recent || []).map((r) => `<div class="r">${r.updated} ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚- ${esc(r.note)}</div>`).join("");
+  const recent = (s.recent || []).map((r) => `<div class="r">${r.updated} - ${esc(r.note)}</div>`).join("");
   const hits = results.length
     ? results.map((r) => `<div class="hit"><b>${r.score.toFixed(2)}</b> ${esc(r.note)}<br>${esc(r.answers)}</div>`).join("")
     : "";
   return `<div class="panel"><h3>recall</h3>
-      <div class="adder"><input id="q" placeholder="ask in words ÃƒÆ’Ã‚¢Ãƒ¢Ã¢â‚¬Å¡Ã‚¬Ãƒ¢Ã¢â€š¬Ã‚ BM25 ranks the notes">
+      <div class="adder"><input id="q" placeholder="ask in words - BM25 ranks the notes">
       <button data-act="search">search</button></div>${hits}</div>
     <div class="grid2"><div class="panel"><h3>domains</h3>${domains}</div>
       <div class="panel"><h3>recent</h3>${recent}</div></div>`;
@@ -129,7 +129,7 @@ function renderProcedures(s) {
     return `<div class="column"><h3>${column}<span>${cards.length}</span></h3>${items || '<div class="empty">empty</div>'}</div>`;
   }).join("");
   return `<div class="panel"><h3>add</h3><div class="adder">
-      <input id="t" placeholder="new card">
+      <input id="t" placeholder="ask in words - BM25 ranks the notes">
       <button data-act="add">add</button></div></div>
     <div class="board">${cols}</div>`;
 }
