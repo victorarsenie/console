@@ -60,3 +60,11 @@ Engines: `1` swift 120k, `2` coder strata, `3` swift 64k. Registry in `actions.p
 No engine has been started by the interface: that is a model run, and model runs
 are explicit work. The last two board tweaks (models/recent panels, dark title bar)
 were not re-captured; they render from the same data path and raise no error.
+
+## Inspiration
+
+The interface idea comes from **Eric Michaud / Easy Machine AI** — the video *"Build an Obsidian BACKEND Not a Second Brain!"* and its public demo at https://hq.easymachineai.com. What we borrowed is the *layout idea*: one workspace in focus at a time, large covers with a single number, a rail of sections, a footer of key hints. His app itself (an Obsidian plugin, sold through his Skool tier) is not part of this repository, and no code, assets, palette or fonts were taken from it.
+
+The demo's own tools list also credits **Quipano's Obsidian Skills repository**, which shaped how we think about per-folder agent instructions; our equivalent is knowledge/*/_domain.md plus the generated maps in E:\AI\memory\ai-unlimited-memory.
+
+Everything here is our implementation, written against our own data sources: status.py (machine), work.py (board), ctions.py (engines) and the memory layer's kb.py.
