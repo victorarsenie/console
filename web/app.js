@@ -68,7 +68,10 @@ function renderTelemetry(s) {
         <div class="row">${s.disk.drive} volume</div></div>
     </div>
     <div class="panel"><h3>engines</h3><div class="ports">${ports}</div>${engines}</div>
-    <div class="panel"><h3>vram free Â· last ${hist.length} samples</h3>${spark(hist)}</div>`;
+    <div class="panel"><h3>models on disk</h3>${(s.models || []).map((m) =>
+      `<div class="row"><span class="dim">${m.gib} GiB</span> - ${esc(m.name)}</div>`).join("")
+      || `<div class="row dim">none</div>`}</div>
+    <div class="panel"><h3>vram free - last ${hist.length} samples</h3>${spark(hist)}</div>`;
 }
 
 function spark(values) {

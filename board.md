@@ -2,9 +2,9 @@
 
 One line per card: `title | project | date | id`.
 ## backlog
+- split the LocalLLM research into 05-speed | ai-bench | 2026-10-23 | 6aaf70
 
 ## next
-- split the LocalLLM research into 05-speed | ai-bench | 2026-10-23 | 6aaf70
 
 ## doing
 
