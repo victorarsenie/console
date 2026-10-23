@@ -62,7 +62,7 @@ function renderTelemetry(s) {
   const engines = Object.entries(ENGINES).map(([key, spec]) => {
     const rec = managed[key];
     const up = rec && rec.alive;
-    return `<div class="engine"><span class="name">[${key}] ${spec.name} <span class="dim">${spec.ctx}</span></span>
+    return `<div class="engine" data-act="engine" data-key="${key}" data-op="${up ? "stop" : "start"}"><span class="name">[${key}] ${spec.name} <span class="dim">${spec.ctx}</span></span>
       <span class="state ${up ? "up" : ""}">${up ? "running" : "stopped"}</span>
       <button data-act="engine" data-key="${key}" data-op="${up ? "stop" : "start"}"
         class="${up ? "danger" : ""}">${up ? "stop" : "start"}</button></div>`;
@@ -230,7 +230,7 @@ document.addEventListener("click", (event) => {
     render();
     return;
   }
-  const button = event.target.closest("button[data-act]");
+  const button = event.target.closest("button[data-act], .engine[data-act]");
   if (!button) return;
   const act = button.dataset.act;
   if (act === "engine") api(`/api/engine?key=${button.dataset.key}&action=${button.dataset.op}`);
@@ -421,3 +421,30 @@ function structuralSig(s) {
     notes: s.memory.notes + s.memory.map_chars,
   });
 }
+
+
+/* ---------- window controls ---------- */
+async function winToggle() {
+  if (window.pywebview && window.pywebview.api && window.pywebview.api.toggle_fullscreen) {
+    await window.pywebview.api.toggle_fullscreen();
+  } else if (document.fullscreenElement) {
+    await document.exitFullscreen();
+  } else {
+    await document.documentElement.requestFullscreen();
+  }
+}
+function winClose() {
+  if (window.pywebview && window.pywebview.api && window.pywebview.api.close_window) {
+    window.pywebview.api.close_window();
+  }
+}
+document.addEventListener("keydown", (event) => {
+  if (event.key === "F11") { event.preventDefault(); winToggle(); }
+  if (event.key === "Escape" && document.fullscreenElement) document.exitFullscreen();
+});
+window.addEventListener("DOMContentLoaded", () => {
+  const full = document.getElementById("win-full");
+  const close = document.getElementById("win-close");
+  if (full) full.addEventListener("click", winToggle);
+  if (close) close.addEventListener("click", winClose);
+});

@@ -27,11 +27,29 @@ import window
 PORT = 8123
 
 
+class WindowApi:
+    """The page calls these for window behaviour the browser cannot do itself."""
+
+    def __init__(self) -> None:
+        self.window = None
+
+    def toggle_fullscreen(self) -> bool:
+        if self.window is not None:
+            self.window.toggle_fullscreen()
+            return bool(self.window.fullscreen)
+        return False
+
+    def close_window(self) -> None:
+        if self.window is not None:
+            self.window.destroy()
+
+
 def main() -> int:
     httpd = window.serve(PORT)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     try:
-        webview.create_window(
+        api = WindowApi()
+        api.window = webview.create_window(
             "MU/TH/UR 6000",
             f"http://127.0.0.1:{PORT}/",
             width=1220,
@@ -40,6 +58,7 @@ def main() -> int:
             background_color="#08080a",
             text_select=False,
             fullscreen=True,
+            js_api=api,
         )
         webview.start()  # blocks until the window closes
     finally:
