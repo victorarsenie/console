@@ -35,7 +35,7 @@ function meter(used, total) {
 function renderStatus(s) {
   const needs = s.needs || [];
   const list = needs.length
-    ? needs.map((n) => `<div class="row ${n.kind === "alert" ? "bad" : ""}">· ${esc(n.text)}</div>`).join("")
+    ? needs.map((n) => `<div class="row ${n.kind === "alert" ? "bad" : ""}">Ã‚Â· ${esc(n.text)}</div>`).join("")
     : `<div class="row ok">nothing waiting on you</div>`;
   const log = (s.memory.log_lines || []).slice(-6).map(esc).join("\n") || "idle";
   return `<div class="panel"><h3>needs you</h3>${list}</div>
@@ -47,7 +47,7 @@ function renderTelemetry(s) {
   const gpu = g.present
     ? `<div class="big">${fmt(g.free_mib)}<small>MiB free of ${fmt(g.total_mib)}</small></div>
        ${meter(g.used_mib, g.total_mib)}
-       <div class="row">${esc(g.name)} · util ${g.util_pct}% · ${g.power_w ?? "--"} W</div>`
+       <div class="row">${esc(g.name)} Ã‚Â· util ${g.util_pct}% Ã‚Â· ${g.power_w ?? "--"} W</div>`
     : `<div class="row">no NVIDIA device</div>`;
   const managed = s.managed || {};
   const engines = Object.entries(ENGINES).map(([key, name]) => {
@@ -72,12 +72,12 @@ function renderTelemetry(s) {
 function renderArchive(s) {
   const domains = (s.knowledge.domains || []).map((d) =>
     `<div class="d">${d.name}<span>${d.notes}</span></div>`).join("");
-  const recent = (s.recent || []).map((r) => `<div class="r">${r.updated} · ${esc(r.note)}</div>`).join("");
+  const recent = (s.recent || []).map((r) => `<div class="r">${r.updated} Ã‚Â· ${esc(r.note)}</div>`).join("");
   const hits = results.length
     ? results.map((r) => `<div class="hit"><b>${r.score.toFixed(2)}</b> ${esc(r.note)}<br>${esc(r.answers)}</div>`).join("")
     : "";
   return `<div class="panel"><h3>recall</h3>
-      <div class="adder"><input id="q" placeholder="ask in words — BM25 ranks the notes">
+      <div class="adder"><input id="q" placeholder="ask in words Ã¢â‚¬â€ BM25 ranks the notes">
       <button data-act="search">search</button></div>${hits}</div>
     <div class="grid2"><div class="panel"><h3>domains</h3>${domains}</div>
       <div class="panel"><h3>recent</h3>${recent}</div></div>`;
@@ -98,12 +98,12 @@ function renderProcedures(s) {
     const cards = board[column] || [];
     const items = cards.map((c) => `<div class="card">
         <div class="t">${esc(c.title)}</div>
-        <div class="meta"><span>${esc(c.project || "—")}</span><span>${c.date || ""}</span></div>
+        <div class="meta"><span>${esc(c.project || "Ã¢â‚¬â€")}</span><span>${c.date || ""}</span></div>
         <div class="acts">
-          <button data-act="card" data-id="${c.id}" data-op="left">‹</button>
-          <button data-act="card" data-id="${c.id}" data-op="right">›</button>
-          <button data-act="card" data-id="${c.id}" data-op="done">✓</button>
-          <button class="danger" data-act="card" data-id="${c.id}" data-op="delete">✕</button>
+          <button data-act="card" data-id="${c.id}" data-op="left">Ã¢â‚¬Â¹</button>
+          <button data-act="card" data-id="${c.id}" data-op="right">Ã¢â‚¬Âº</button>
+          <button data-act="card" data-id="${c.id}" data-op="done">Ã¢Å“â€œ</button>
+          <button class="danger" data-act="card" data-id="${c.id}" data-op="delete">Ã¢Å“â€¢</button>
         </div></div>`).join("");
     return `<div class="column"><h3>${column}<span>${cards.length}</span></h3>${items || '<div class="empty">empty</div>'}</div>`;
   }).join("");
@@ -115,19 +115,28 @@ function renderProcedures(s) {
 
 /* ---------- shell ---------- */
 function renderShell() {
-  const theatre = $("#theatre");
-  theatre.innerHTML = BAYS.map((bay) => {
-    const openHere = bay.id === open;
-    return `<section class="bay ${openHere ? "open" : ""}" data-bay="${bay.id}">
-      <div class="cover">
-        <div class="label">${bay.label}</div>
-        <div class="number">${bay.number(state)}<small>${bay.unit(state)}</small></div>
-        <div class="note">${bay.note}</div>
+  const track = $("#track");
+  track.innerHTML = BAYS.map((bay, index) => {
+    const isOpen = bay.id === open;
+    const number = bay.number(state);
+    const unit = bay.unit(state);
+    const wide = /^[\d,]+$/.test(String(number)) ? (String(number).length > 7 ? " mid" : "") : " mid";
+    return `<article class="baycard ${isOpen ? "open" : ""}" data-bay="${bay.id}">
+      <div class="atm"></div>
+      <div class="spine">
+        <div class="vlabel">${bay.label}</div>
+        <div class="vnum">${unit ? String(number).slice(0, 6) : number}</div>
       </div>
-      <div class="head"><h2>${bay.label}</h2>
-        <div class="big">${bay.number(state)}<small>${bay.unit(state)}</small></div></div>
-      <div class="body">${openHere ? bay.render(state) : ""}</div>
-    </section>`;
+      <div class="inside">
+        <div class="visual">
+          <div class="label">${bay.label}</div>
+          <div class="glyph">0${index + 1}</div>
+          <div class="huge${wide}">${number}</div>
+          <div class="cap">${unit || bay.note}</div>
+        </div>
+        <div class="copy">${isOpen ? bay.render(state) : ""}</div>
+      </div>
+    </article>`;
   }).join("");
 }
 
@@ -154,7 +163,7 @@ function toast(message, bad) {
 }
 
 document.addEventListener("click", (event) => {
-  const bay = event.target.closest(".bay");
+  const bay = event.target.closest(".baycard");
   if (bay && !event.target.closest("button") && !event.target.closest("input")) {
     open = bay.dataset.bay;
     render();
@@ -166,11 +175,11 @@ document.addEventListener("click", (event) => {
   if (act === "engine") api(`/api/engine?key=${button.dataset.key}&action=${button.dataset.op}`);
   else if (act === "card") api(`/api/card?action=move&id=${button.dataset.id}&direction=${button.dataset.op === "delete" ? "" : button.dataset.op}`);
   else if (act === "add") {
-    const input = document.querySelector(".bay.open #t");
+    const input = document.querySelector(".baycard.open #t");
     const title = input?.value.trim();
     if (title) api(`/api/card?action=add&title=${encodeURIComponent(title)}&project=`);
   } else if (act === "search") {
-    const query = document.querySelector(".bay.open #q")?.value.trim();
+    const query = document.querySelector(".baycard.open #q")?.value.trim();
     if (query) search(query);
   }
 });
@@ -220,3 +229,11 @@ async function poll() {
 function tick() { $("#clock").textContent = new Date().toTimeString().slice(0, 8); }
 tick(); setInterval(tick, 1000);
 poll(); setInterval(poll, 3000);
+
+$("#prev").addEventListener("click", () => step(-1));
+$("#next").addEventListener("click", () => step(1));
+function step(delta) {
+  const index = BAYS.findIndex((b) => b.id === open);
+  const next = Math.max(0, Math.min(BAYS.length - 1, index + delta));
+  if (next !== index) { open = BAYS[next].id; render(); }
+}
