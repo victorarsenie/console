@@ -151,3 +151,20 @@ button.danger:hover { background: rgba(255,107,94,.12); border-color: var(--bad)
   .visual { min-height: 190px; border-right: 0; border-bottom: 1px solid rgba(255,176,0,.12); }
   .baycard { flex-basis: 74px; }
 }
+
+/* ---- polish: proportional display type, more air, textured spines ---- */
+:root { --display: "Segoe UI Variable Display", "Segoe UI", Inter, system-ui, sans-serif; }
+.brand { font-family: var(--display); font-weight: 300; letter-spacing: .5em; }
+.visual .huge { font-family: var(--display); font-weight: 300; letter-spacing: -.015em; }
+.visual .huge.mid { font-family: var(--display); font-weight: 400; letter-spacing: .02em; }
+.visual .label { font-family: var(--display); letter-spacing: .46em; }
+.visual .cap { font-family: var(--display); letter-spacing: .3em; }
+.baycard { border-radius: 20px; }
+.baycard.open { border-radius: 22px; }
+.visual { padding: 64px 46px 48px; }
+.copy { padding: 48px 40px 34px; }
+.spine { gap: 10px; }
+.spine .vmono { font-family: var(--display); font-size: 20px; font-weight: 300;
+  color: rgba(255,176,0,.55); letter-spacing: 0; }
+.spine .vnum { font-size: 11px; color: var(--dim); letter-spacing: .08em; }
+.copy .panel { border-color: #1b1407; }

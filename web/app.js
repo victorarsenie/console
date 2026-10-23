@@ -5,6 +5,7 @@ const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 const COLUMNS = ["backlog", "next", "doing", "done"];
 const ENGINES = { "1": "swift 120k", "2": "coder strata", "3": "swift 64k" };
 let state = null;
+let lastSig = "";
 let open = "status";
 let results = [];
 const hist = [];
@@ -139,7 +140,8 @@ function renderShell() {
       <div class="atm"></div>
       <div class="spine">
         <div class="vlabel">${bay.label}</div>
-        <div class="vnum">${bay.glyph}</div>
+        <div class="vmono">${bay.glyph}</div>
+        <div class="vnum">${String(bay.number(state)).slice(0, 7)}</div>
       </div>
     </article>`;
   const focused = (bay, index) => {
@@ -245,7 +247,8 @@ async function poll() {
     const res = await fetch("/api/state", { cache: "no-store" });
     state = await res.json();
     if (state.gpu && state.gpu.present) { hist.push(state.gpu.free_mib); if (hist.length > 90) hist.shift(); }
-    render();
+    const sig = JSON.stringify(state, (key, value) => (key === "ts" ? undefined : value));
+    if (sig !== lastSig) { lastSig = sig; render(); }
   } catch (err) {
     $("#dot").className = "dot bad";
     toast("collector unreachable", true);
