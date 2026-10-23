@@ -17,6 +17,7 @@ Measured: see README.md. Close it before a benchmark; the 150k coder leaves only
 """
 from __future__ import annotations
 
+import os
 import sys
 import threading
 
@@ -25,6 +26,24 @@ import webview
 import window
 
 PORT = 8123
+
+
+def report_failure(exc: BaseException) -> None:
+    """A window that dies silently is worse than one that says why."""
+    import traceback
+    from pathlib import Path
+    text = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+    log = Path(__file__).with_name("console-error.log")
+    try:
+        log.write_text(text, encoding="utf-8")
+    except OSError:
+        pass
+    try:
+        import ctypes
+        ctypes.windll.user32.MessageBoxW(None, text[-1200:] + f"\n\nlog: {log}",
+                                         "Console failed to start", 0x10)
+    except Exception:
+        pass
 
 
 class WindowApi:
@@ -79,7 +98,13 @@ def main() -> int:
             fullscreen=True,
             js_api=api,
         )
-        webview.start()  # blocks until the window closes
+        import tempfile
+        from pathlib import Path
+        storage = Path(tempfile.gettempdir()) / f"console-ui-{os.getpid()}"
+        webview.start(storage_path=str(storage))  # blocks until the window closes
+    except Exception as exc:
+        report_failure(exc)
+        return 1
     finally:
         httpd.shutdown()
     return 0
