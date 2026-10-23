@@ -7,20 +7,21 @@ const ENGINES = { "1": "swift 120k", "2": "coder strata", "3": "swift 64k" };
 let state = null;
 let open = "status";
 let results = [];
+const hist = [];
 
 /* ---------- bay views ---------- */
 const BAYS = [
-  { id: "status", label: "status", note: "what needs you",
+  { id: "status", label: "status", glyph: "S", note: "what needs you",
     number: (s) => (s.alerts.length ? `${s.alerts.length}` : "nominal"),
     unit: (s) => (s.alerts.length ? "alerts" : ""), render: renderStatus },
-  { id: "telemetry", label: "telemetry", note: "card, ram, engines",
+  { id: "telemetry", label: "telemetry", glyph: "T", note: "card, ram, engines",
     number: (s) => (s.gpu.present ? fmt(s.gpu.free_mib) : "--"), unit: () => "MiB free",
     render: renderTelemetry },
-  { id: "archive", label: "archive", note: "notes and recall",
+  { id: "archive", label: "archive", glyph: "A", note: "notes and recall",
     number: (s) => fmt(totalNotes(s)), unit: () => "notes", render: renderArchive },
-  { id: "berth", label: "berth", note: "projects and cards",
+  { id: "berth", label: "berth", glyph: "B", note: "projects and cards",
     number: (s) => `${s.projects.length}`, unit: () => "projects", render: renderBerth },
-  { id: "procedures", label: "procedures", note: "board and runs",
+  { id: "procedures", label: "procedures", glyph: "P", note: "board and runs",
     number: (s) => `${(s.board.doing || []).length}`, unit: () => "in progress",
     render: renderProcedures },
 ];
@@ -35,7 +36,7 @@ function meter(used, total) {
 function renderStatus(s) {
   const needs = s.needs || [];
   const list = needs.length
-    ? needs.map((n) => `<div class="row ${n.kind === "alert" ? "bad" : ""}">Ã‚Â· ${esc(n.text)}</div>`).join("")
+    ? needs.map((n) => `<div class="row ${n.kind === "alert" ? "bad" : ""}">Ãƒâ€šÃ‚Â· ${esc(n.text)}</div>`).join("")
     : `<div class="row ok">nothing waiting on you</div>`;
   const log = (s.memory.log_lines || []).slice(-6).map(esc).join("\n") || "idle";
   return `<div class="panel"><h3>needs you</h3>${list}</div>
@@ -47,7 +48,7 @@ function renderTelemetry(s) {
   const gpu = g.present
     ? `<div class="big">${fmt(g.free_mib)}<small>MiB free of ${fmt(g.total_mib)}</small></div>
        ${meter(g.used_mib, g.total_mib)}
-       <div class="row">${esc(g.name)} Ã‚Â· util ${g.util_pct}% Ã‚Â· ${g.power_w ?? "--"} W</div>`
+       <div class="row">${esc(g.name)} Ãƒâ€šÃ‚Â· util ${g.util_pct}% Ãƒâ€šÃ‚Â· ${g.power_w ?? "--"} W</div>`
     : `<div class="row">no NVIDIA device</div>`;
   const managed = s.managed || {};
   const engines = Object.entries(ENGINES).map(([key, name]) => {
@@ -66,18 +67,31 @@ function renderTelemetry(s) {
       <div class="panel"><h3>storage</h3><div class="big">${s.disk.free_gib}<small>GiB</small></div>
         <div class="row">${s.disk.drive} volume</div></div>
     </div>
-    <div class="panel"><h3>engines</h3><div class="ports">${ports}</div>${engines}</div>`;
+    <div class="panel"><h3>engines</h3><div class="ports">${ports}</div>${engines}</div>
+    <div class="panel"><h3>vram free Â· last ${hist.length} samples</h3>${spark(hist)}</div>`;
+}
+
+function spark(values) {
+  if (values.length < 2) return `<div class="row dim">collecting samplesâ€¦</div>`;
+  const w = 260, h = 44;
+  const min = Math.min(...values), max = Math.max(...values);
+  const span = max - min || 1;
+  const points = values.map((v, i) =>
+    `${((i / (values.length - 1)) * w).toFixed(1)},${(h - ((v - min) / span) * h).toFixed(1)}`).join(" ");
+  return `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <polyline points="${points}" fill="none" stroke="#ffb000" stroke-width="1.1" vector-effect="non-scaling-stroke"/>
+  </svg>`;
 }
 
 function renderArchive(s) {
   const domains = (s.knowledge.domains || []).map((d) =>
     `<div class="d">${d.name}<span>${d.notes}</span></div>`).join("");
-  const recent = (s.recent || []).map((r) => `<div class="r">${r.updated} Ã‚Â· ${esc(r.note)}</div>`).join("");
+  const recent = (s.recent || []).map((r) => `<div class="r">${r.updated} Ãƒâ€šÃ‚Â· ${esc(r.note)}</div>`).join("");
   const hits = results.length
     ? results.map((r) => `<div class="hit"><b>${r.score.toFixed(2)}</b> ${esc(r.note)}<br>${esc(r.answers)}</div>`).join("")
     : "";
   return `<div class="panel"><h3>recall</h3>
-      <div class="adder"><input id="q" placeholder="ask in words Ã¢â‚¬â€ BM25 ranks the notes">
+      <div class="adder"><input id="q" placeholder="ask in words ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â BM25 ranks the notes">
       <button data-act="search">search</button></div>${hits}</div>
     <div class="grid2"><div class="panel"><h3>domains</h3>${domains}</div>
       <div class="panel"><h3>recent</h3>${recent}</div></div>`;
@@ -98,12 +112,12 @@ function renderProcedures(s) {
     const cards = board[column] || [];
     const items = cards.map((c) => `<div class="card">
         <div class="t">${esc(c.title)}</div>
-        <div class="meta"><span>${esc(c.project || "Ã¢â‚¬â€")}</span><span>${c.date || ""}</span></div>
+        <div class="meta"><span>${esc(c.project || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â")}</span><span>${c.date || ""}</span></div>
         <div class="acts">
-          <button data-act="card" data-id="${c.id}" data-op="left">Ã¢â‚¬Â¹</button>
-          <button data-act="card" data-id="${c.id}" data-op="right">Ã¢â‚¬Âº</button>
-          <button data-act="card" data-id="${c.id}" data-op="done">Ã¢Å“â€œ</button>
-          <button class="danger" data-act="card" data-id="${c.id}" data-op="delete">Ã¢Å“â€¢</button>
+          <button data-act="card" data-id="${c.id}" data-op="left">ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹</button>
+          <button data-act="card" data-id="${c.id}" data-op="right">ÃƒÂ¢Ã¢â€šÂ¬Ã‚Âº</button>
+          <button data-act="card" data-id="${c.id}" data-op="done">ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“</button>
+          <button class="danger" data-act="card" data-id="${c.id}" data-op="delete">ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¢</button>
         </div></div>`).join("");
     return `<div class="column"><h3>${column}<span>${cards.length}</span></h3>${items || '<div class="empty">empty</div>'}</div>`;
   }).join("");
@@ -116,28 +130,36 @@ function renderProcedures(s) {
 /* ---------- shell ---------- */
 function renderShell() {
   const track = $("#track");
-  track.innerHTML = BAYS.map((bay, index) => {
-    const isOpen = bay.id === open;
-    const number = bay.number(state);
-    const unit = bay.unit(state);
-    const wide = /^[\d,]+$/.test(String(number)) ? (String(number).length > 7 ? " mid" : "") : " mid";
-    return `<article class="baycard ${isOpen ? "open" : ""}" data-bay="${bay.id}">
+  const openIndex = BAYS.findIndex((b) => b.id === open);
+  const spine = (bay, index) => `
+    <article class="baycard" data-bay="${bay.id}">
       <div class="atm"></div>
       <div class="spine">
         <div class="vlabel">${bay.label}</div>
-        <div class="vnum">${unit ? String(number).slice(0, 6) : number}</div>
+        <div class="vnum">${bay.glyph}</div>
       </div>
+    </article>`;
+  const focused = (bay, index) => {
+    const number = bay.number(state);
+    const unit = bay.unit(state);
+    const numeric = /^[\d,]+$/.test(String(number));
+    const size = !numeric || String(number).length > 7 ? " mid" : "";
+    return `<article class="baycard open" data-bay="${bay.id}">
+      <div class="atm"></div>
       <div class="inside">
         <div class="visual">
           <div class="label">${bay.label}</div>
-          <div class="glyph">0${index + 1}</div>
-          <div class="huge${wide}">${number}</div>
+          <div class="glyph">${bay.glyph}</div>
+          <div class="huge${size}">${number}</div>
           <div class="cap">${unit || bay.note}</div>
         </div>
-        <div class="copy">${isOpen ? bay.render(state) : ""}</div>
+        <div class="copy">${bay.render(state)}</div>
       </div>
     </article>`;
-  }).join("");
+  };
+  const left = BAYS.slice(0, openIndex).map((bay, i) => spine(bay, i)).join("");
+  const right = BAYS.slice(openIndex + 1).map((bay, i) => spine(bay, openIndex + 1 + i)).join("");
+  track.innerHTML = left + focused(BAYS[openIndex], openIndex) + right;
 }
 
 function render() {
@@ -219,6 +241,7 @@ async function poll() {
   try {
     const res = await fetch("/api/state", { cache: "no-store" });
     state = await res.json();
+    if (state.gpu && state.gpu.present) { hist.push(state.gpu.free_mib); if (hist.length > 90) hist.shift(); }
     render();
   } catch (err) {
     $("#dot").className = "dot bad";
