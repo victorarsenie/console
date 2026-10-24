@@ -1,4 +1,6 @@
 // Console theatre: five bays, one in focus. Same API, different shape.
+import { cue, start as startAudio, setMuted, isMuted } from "/audio.js";
+
 const $ = (sel) => document.querySelector(sel);
 const fmt = (n) => (n ?? 0).toLocaleString();
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -180,6 +182,7 @@ async function loadSessions() {
 }
 
 function openBay(id) {
+  if (id !== open) cue.bay();
   open = id;
   document.querySelectorAll(".baycard").forEach((card) => {
     const isOpen = card.dataset.bay === id;
@@ -285,6 +288,9 @@ function toast(message, bad) {
   toast.timer = setTimeout(() => (el.textContent = ""), 6000);
 }
 
+["pointerdown", "keydown"].forEach((evt) =>
+  window.addEventListener(evt, () => startAudio(), { once: true }));
+
 document.addEventListener("click", (event) => {
   // keep a selection alive: a click must not clear what the user highlighted
   if (String(window.getSelection() || "").length > 0) return;
@@ -383,6 +389,7 @@ async function poll() {
     // numbers update in place; the DOM is rebuilt only on a real structural change,
     // and then at most once a minute, so the bays stop blinking.
     const sig = structuralSig(state);
+    if (sig !== lastSig && state.alerts && state.alerts.length) cue.alert();
     if (sig !== lastSig) {
       lastSig = sig;
       if (Date.now() - lastRender > 60000) { lastRender = Date.now(); render(); }
@@ -392,6 +399,35 @@ async function poll() {
     $("#dot").className = "dot bad";
     toast("collector unreachable", true);
   }
+}
+
+function typeBoot() {
+  const box = document.getElementById("boot");
+  if (!box) return;
+  const lines = [
+    "MU/TH/UR 6000",
+    "INTERFACE 2037 READY FOR INQUIRY",
+    "CORE ................ OK",
+    "KNOWLEDGE LAYER ..... MOUNTED",
+    "WORK BOARD .......... LOADED",
+    "ENGINES ............. POLLING",
+    "OPENCODE ............ LINKED",
+  ];
+  box.innerHTML = '<div class="boot-inner"></div>';
+  const inner = box.querySelector(".boot-inner");
+  let line = 0, char = 0, node = null;
+  function step() {
+    if (line >= lines.length) {
+      setTimeout(() => { box.style.opacity = "0"; setTimeout(() => box.remove(), 500); }, 420);
+      return;
+    }
+    if (!node) { node = document.createElement("div"); node.className = "boot-line" + (line ? " dim" : ""); inner.appendChild(node); }
+    node.textContent = lines[line].slice(0, ++char);
+    if (char >= lines[line].length) { line++; char = 0; node = null; setTimeout(step, 120); }
+    else setTimeout(step, 14);
+    if (char === 1) cue.key();
+  }
+  step();
 }
 
 function tick() { $("#clock").textContent = new Date().toTimeString().slice(0, 8); }
@@ -571,6 +607,15 @@ document.addEventListener("keydown", (event) => {
 window.addEventListener("DOMContentLoaded", () => {
   const full = document.getElementById("win-full");
   const close = document.getElementById("win-close");
+  const mute = document.getElementById("win-mute");
+  if (mute) {
+    mute.style.opacity = isMuted() ? "0.45" : "1";
+    mute.addEventListener("click", () => {
+      setMuted(!isMuted());
+      mute.style.opacity = isMuted() ? "0.45" : "1";
+      toast(isMuted() ? "sound off" : "sound on");
+    });
+  }
   const min = document.getElementById("win-min");
   if (min) min.addEventListener("click", winMin);
   if (full) full.addEventListener("click", winToggle);

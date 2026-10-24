@@ -230,3 +230,6 @@ body.isfull .wincontrols { position: fixed; }
 .baycard .inside { animation: none; }
 @keyframes bayin { from { opacity: 0; transform: translateY(6px) scale(.995); } to { opacity: 1; transform: none; } }
 .baycard.open { will-change: flex-basis; }
+
+#win-mute { font-size: 12px; }
+.boot-line { font-family: Consolas, monospace; }
