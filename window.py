@@ -90,6 +90,7 @@ def open_path(raw: str, dry: bool = False) -> tuple[bool, str]:
 
 
 _sessions_cache = {"at": 0.0, "data": []}
+OPENCODE_EXE = Path(r"C:\Users\victo\AppData\Roaming\npm\node_modules\@opencode\cli\bin\opencode.exe")
 
 
 def sessions() -> list[dict]:
@@ -102,7 +103,7 @@ def sessions() -> list[dict]:
         return _sessions_cache["data"]
     rows = []
     try:
-        res = subprocess.run(["opencode", "api", "GET", "/api/session"],
+        res = subprocess.run([str(OPENCODE_EXE), "api", "GET", "/api/session"],
                              capture_output=True, text=True, timeout=30,
                              creationflags=0x08000000)
         payload = json.loads(res.stdout or "{}")
