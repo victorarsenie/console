@@ -46,7 +46,7 @@ def search_knowledge(query: str) -> dict:
         return {"ok": False, "results": [], "message": "kb.py not found"}
     try:
         res = subprocess.run([sys.executable, str(kb), "similar", query, "--top", "6"],
-                             cwd=str(kb.parent), capture_output=True, text=True,
+                             cwd=str(kb.parent), capture_output=True, text=True, encoding="utf-8", errors="replace",
                              timeout=25, creationflags=0x08000000)
     except Exception as exc:
         return {"ok": False, "results": [], "message": str(exc)}
@@ -104,7 +104,7 @@ def sessions() -> list[dict]:
     rows = []
     try:
         res = subprocess.run([str(OPENCODE_EXE), "api", "GET", "/api/session"],
-                             capture_output=True, text=True, timeout=30,
+                             capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
                              creationflags=0x08000000)
         payload = json.loads(res.stdout or "{}")
         for item in payload.get("data", []):
@@ -135,7 +135,7 @@ def transcript(session_id: str, limit: int = 60) -> list[dict]:
     try:
         res = subprocess.run([str(OPENCODE_EXE), "api", "GET",
                               f"/api/session/{session_id}/message"],
-                             capture_output=True, text=True, timeout=30,
+                             capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
                              creationflags=0x08000000)
         payload = json.loads(res.stdout or "{}")
     except Exception:
@@ -238,7 +238,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             kb = Path(r"E:\AI\memory\ai-unlimited-memory\kb.py")
             res = subprocess.run([sys.executable, str(kb), "pending", text],
-                                 cwd=str(kb.parent), capture_output=True, text=True,
+                                 cwd=str(kb.parent), capture_output=True, text=True, encoding="utf-8", errors="replace",
                                  timeout=30, creationflags=0x08000000)
             out = (res.stdout or res.stderr).strip().splitlines()
             self._json({"ok": res.returncode == 0, "message": out[-1] if out else "queued"})
