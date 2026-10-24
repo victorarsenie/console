@@ -1,14 +1,15 @@
-# Console — research log
+# Console â€” research log
 
-Findings from building the operations console, kept because most of them cost a
+One log for Muther: the assistant and its interface (`E:\AI\console`). Findings kept
+because most of them cost a session each.
 session each. Anything that worked first time is not here.
 
-## Shell（how the UI is hosted）
+## Shellï¼ˆhow the UI is hostedï¼‰
 
 | attempt | result |
 |---|---|
 | **browser tab** (`window.py --open`) | stable, browser chrome, ~450 MB. The fallback that never failed. |
-| **pywebview 6.2.1 / WebView2** | crashed natively, four times, with **no traceback** — `fullscreen=True` at `create_window` kills the process below Python, so the error handler never runs. Setting fullscreen 0.6 s *after* creation survived three launches in a row. Still abandoned as unstable. |
+| **pywebview 6.2.1 / WebView2** | crashed natively, four times, with **no traceback** â€” `fullscreen=True` at `create_window` kills the process below Python, so the error handler never runs. Setting fullscreen 0.6 s *after* creation survived three launches in a row. Still abandoned as unstable. |
 | **Chrome `--app`** | chrome-less window, but a malformed flag leaves a headless server and no window ("python not responding"). |
 | **Electron 45** | working: 294 MB, starts the Python server itself, IPC bridge for the window buttons, fullscreen at creation is fine here. |
 
@@ -18,10 +19,10 @@ its binary; `node node_modules/electron/install.js` fixes it.
 
 ## Process and port hazards
 
-- The server must bind the **first free port** (8123 → 8130); a stale instance holding
+- The server must bind the **first free port** (8123 â†’ 8130); a stale instance holding
   8123 made the first launch die silently.
 - A `.bat` that runs `pythonw app.py` **synchronously** keeps its console open for
-  the app's whole life — that was the mysterious second window. Use `start`.
+  the app's whole life â€” that was the mysterious second window. Use `start`.
 - Children of a windowless process get **their own console** unless
   `CREATE_NO_WINDOW` is set: this is why the collector flashed cmd windows every
   1.5 s. Applies to `tasklist`, `nvidia-smi`, `taskkill`.
@@ -38,7 +39,7 @@ its binary; `node node_modules/electron/install.js` fixes it.
   numbers in place (`data-live`), rebuild only when structure changes.
 - CSS selectors that assume a wrapper (`.domains .d`) silently stop applying when the
   parent changes; match the row class directly.
-- `text_select=False` on the window disables all selection — and with it copy.
+- `text_select=False` on the window disables all selection â€” and with it copy.
 - A click handler that rebuilds the DOM clears the user's text selection; bail out
   while `window.getSelection()` is non-empty.
 - Non-ASCII separators in these files are unsafe: PowerShell round trips mangle them
@@ -57,7 +58,7 @@ its binary; `node node_modules/electron/install.js` fixes it.
 
 ## Open
 
-- pywebview stability (would save ~150 MB versus Electron) — not worth another session.
+- pywebview stability (would save ~150 MB versus Electron) â€” not worth another session.
 - Sub-tabs inside bays: the refactor broke the page once (BAYS referenced deleted
   render functions). Add the new functions beside the old ones, switch references in
   the same edit, and assert the page still renders before committing.
