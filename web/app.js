@@ -198,7 +198,7 @@ let activeSession = "";
 let chat = [];
 
 function renderTerminal() {
-  const rows = chat.slice(-40).map((m) => {
+  const rows = chat.filter((m) => (m.parts || []).some((p) => (p.text || '').trim())).slice(-40).map((m) => {
     const who = m.role === "user" ? "you" : m.role === "assistant" ? "mu/th/ur" : m.role;
     const body = (m.parts || []).map((p) => {
       if (p.kind === "text") return `<div class="line">${esc(p.text)}</div>`;
@@ -208,7 +208,7 @@ function renderTerminal() {
     return `<div class="msg ${m.role}"><div class="who">${who}</div>${body || '<div class="line dim">...</div>'}</div>`;
   }).join("");
   return `<div class="crt-term">
-      <div class="term-head">${activeSession ? esc(activeSession) : "no session selected - pick one in sessions"}
+      <div class="term-head">${activeSession ? esc(activeSession) : "no session - pick one in sessions"}
         <button data-act="chat-refresh">refresh</button></div>
       <div class="term-log" id="chatlog">${rows || '<div class="row dim">empty</div>'}</div>
       <div class="term-input">
@@ -231,7 +231,7 @@ async function loadChat() {
     chat = data.messages || [];
     const log = document.getElementById("chatlog");
     if (log) {
-      log.innerHTML = chat.slice(-40).map((m) => {
+      log.innerHTML = chat.filter((m) => (m.parts || []).some((p) => (p.text || '').trim())).slice(-40).map((m) => {
         const who = m.role === "user" ? "you" : m.role === "assistant" ? "mu/th/ur" : m.role;
         const body = (m.parts || []).map((p) => {
           if (p.kind === "text") return `<div class="line">${esc(p.text)}</div>`;
@@ -328,6 +328,12 @@ function bayVisual(id, s) {
 function render() {
   if (!state) return;
   lastRender = Date.now();
+  if (event.target.closest("[data-act='chat-send']")) {
+    const input = document.getElementById("chat-text");
+    const text = input && input.value.trim();
+    if (text) { input.value = ""; sendPrompt(text); }
+    return;
+  }
   if (String(window.getSelection() || "").length > 0) return;
   renderShell();
   updateLive();
@@ -357,12 +363,6 @@ document.addEventListener("click", (event) => {
   // keep a selection alive: a click must not clear what the user highlighted
   if (String(window.getSelection() || "").length > 0) return;
   if (event.target.closest("[data-act='clear-filter']")) { projectFilter = ""; render(); return; }
-  if (event.target.closest("[data-act='chat-send']")) {
-    const input = document.getElementById("chat-text");
-    const text = input && input.value.trim();
-    if (text) { input.value = ""; sendPrompt(text); }
-    return;
-  }
   const sessRow = event.target.closest("[data-session]");
   if (sessRow) { activeSession = sessRow.dataset.session; chat = []; openBay("terminal"); loadChat(); return; }
   if (event.target.closest("[data-act='chat-refresh']")) { loadChat(); return; }
