@@ -179,6 +179,16 @@ async function loadSessions() {
   } catch (err) { window.__sessions = []; }
 }
 
+function openBay(id) {
+  open = id;
+  document.querySelectorAll(".baycard").forEach((card) => {
+    const isOpen = card.dataset.bay === id;
+    card.classList.toggle("open", isOpen);
+    card.querySelectorAll(".spine").forEach((el) => (el.style.display = isOpen ? "none" : ""));
+    card.querySelectorAll(".inside").forEach((el) => (el.style.display = isOpen ? "grid" : "none"));
+  });
+}
+
 function renderShell() {
   const track = $("#track");
   const openIndex = BAYS.findIndex((b) => b.id === open);
@@ -196,9 +206,10 @@ function renderShell() {
     const unit = bay.unit(state);
     const numeric = /^[\d,]+$/.test(String(number));
     const size = !numeric || String(number).length > 7 ? " mid" : "";
-    return `<article class="baycard open" data-bay="${bay.id}">
+    const isOpen = bay.id === open;
+    return `<article class="baycard ${isOpen ? "open" : ""}" data-bay="${bay.id}">
       <div class="atm"></div>
-      <div class="inside">
+      <div class="inside" style="display:${isOpen ? "grid" : "none"}">
         <div class="visual">
           <div class="label">${bay.label}</div>
           <div class="glyph">${bay.glyph}</div>
@@ -206,7 +217,7 @@ function renderShell() {
           <div class="cap">${unit || bay.note}</div>
           ${bayVisual(bay.id, state)}
         </div>
-        <div class="copy">${bay.render(state)}</div>
+        <div class="copy">${(bay.render || (() => ""))(state)}</div>
       </div>
     </article>`;
   };
@@ -295,8 +306,7 @@ document.addEventListener("click", (event) => {
   }
   const bay = event.target.closest(".baycard");
   if (bay && !event.target.closest("button") && !event.target.closest("input")) {
-    open = bay.dataset.bay;
-    render();
+    openBay(bay.dataset.bay);
     return;
   }
   const button = event.target.closest("button[data-act], .engine[data-act]");
@@ -331,9 +341,9 @@ document.addEventListener("keydown", (event) => {
     return;
   }
   const index = BAYS.findIndex((b) => b.id === open);
-  if (/^[1-6]$/.test(event.key)) { open = BAYS[Number(event.key) - 1].id; render(); }
-  else if (event.key === "ArrowRight") { open = BAYS[Math.min(BAYS.length - 1, index + 1)].id; render(); }
-  else if (event.key === "ArrowLeft") { open = BAYS[Math.max(0, index - 1)].id; render(); }
+  if (/^[1-6]$/.test(event.key)) { openBay(BAYS[Number(event.key) - 1].id); }
+  else if (event.key === "ArrowRight") { openBay(BAYS[Math.min(BAYS.length - 1, index + 1)].id); }
+  else if (event.key === "ArrowLeft") { openBay(BAYS[Math.max(0, index - 1)].id); }
   else if (event.key.toLowerCase() === "r") poll();
   else if (ENGINES[event.key]) {
     const rec = (state?.managed || {})[event.key];

@@ -227,6 +227,6 @@ body.isfull .wincontrols { position: fixed; }
 /* bay transitions: focus moves, it does not jump */
 .baycard { transition: flex-basis .42s var(--ease), opacity .3s ease, filter .3s ease,
   border-color .3s ease, box-shadow .3s ease; }
-.baycard .inside { animation: bayin .32s var(--ease) both; }
+.baycard .inside { animation: none; }
 @keyframes bayin { from { opacity: 0; transform: translateY(6px) scale(.995); } to { opacity: 1; transform: none; } }
 .baycard.open { will-change: flex-basis; }
