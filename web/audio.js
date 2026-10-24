@@ -61,7 +61,14 @@ export const cue = {
 
 export function start() {
   if (!ensure()) return;
-  if (ctx.state === "suspended") ctx.resume();
+  if (ctx.state !== "running") {
+    ctx.resume().catch(() => {});
+  }
+  if (ctx.state !== "running") {
+    const kick = () => { if (ctx) ctx.resume().catch(() => {}); };
+    window.addEventListener("pointerdown", kick, { once: true });
+    window.addEventListener("keydown", kick, { once: true });
+  }
 }
 
 export function setMuted(value) {

@@ -699,7 +699,7 @@ function typeBoot() {
   ];
   box.innerHTML = '<div class="boot-inner"></div>';
   startAudio();
-  cue.boot();
+  setTimeout(() => cue.boot(), 120);
   const inner = box.querySelector(".boot-inner");
   let line = 0, char = 0, node = null;
   function step() {
@@ -721,7 +721,6 @@ tick(); setInterval(tick, 1000);
 loadFlows();
 setTimeout(loadFlows, 600);
 loadSessions();
-if (localStorage.getItem("console.solo") === "1") $("#track").classList.add("solo");
 fetch("/api/models").then((r) => r.json()).then((d) => {
   window.__models = d.models || [];
   fillModels();
