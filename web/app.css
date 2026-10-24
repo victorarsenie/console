@@ -394,5 +394,6 @@ main.stage::after { content: ""; position: absolute; inset: 0; pointer-events: n
   color: var(--dim); background: #04100a; border: 1px solid #10361f;
   border-radius: 3px; opacity: 0; transition: opacity .15s ease; cursor: pointer; }
 .baycard:hover .solo-btn { opacity: .85; }
+.baycard.open .solo-btn { opacity: 0; }
 .baycard .solo-btn:hover { color: var(--amber); border-color: var(--amber); }
 .track.solo .baycard:hover .solo-btn { color: var(--amber); border-color: var(--amber); }

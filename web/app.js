@@ -734,13 +734,13 @@ function typeBoot() {
   let line = 0, char = 0, node = null;
   function step() {
     if (line >= lines.length) {
-      setTimeout(() => { box.style.opacity = "0"; setTimeout(() => box.remove(), 600); }, 900);
+      setTimeout(() => { box.style.opacity = "0"; setTimeout(() => box.remove(), 400); }, 400);
       return;
     }
     if (!node) { node = document.createElement("div"); node.className = "boot-line" + (line ? " dim" : ""); inner.appendChild(node); }
     node.textContent = lines[line].slice(0, ++char);
-    if (char >= lines[line].length) { line++; char = 0; node = null; setTimeout(step, 260); }
-    else setTimeout(step, 26);
+    if (char >= lines[line].length) { line++; char = 0; node = null; setTimeout(step, 150); }
+    else setTimeout(step, 19);
     if (char === 1) cue.key();
   }
   step();

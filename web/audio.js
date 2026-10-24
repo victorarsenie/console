@@ -47,6 +47,24 @@ function blip(freq = 880, ms = 45, type = "square", gain = 0.09, slide = 0) {
   osc.stop(ctx.currentTime + ms / 1000 + 0.02);
 }
 
+
+// A short band-passed noise burst: mechanical, not musical.
+function tick(freq = 2200, ms = 18, gain = 0.05, q = 6) {
+  if (!ensure() || muted) return;
+  const src = ctx.createBufferSource();
+  src.buffer = noiseBuffer(0.06);
+  const bp = ctx.createBiquadFilter();
+  bp.type = "bandpass";
+  bp.frequency.value = freq;
+  bp.Q.value = q;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(gain, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + ms / 1000);
+  src.connect(bp).connect(g).connect(master);
+  src.start();
+  src.stop(ctx.currentTime + ms / 1000 + 0.01);
+}
+
 export const cue = {
   key: () => blip(1200 + Math.random() * 240, 28, "square", 0.05),
   bay: () => { blip(660, 60, "triangle", 0.08); setTimeout(() => blip(880, 70, "triangle", 0.07), 70); },
@@ -68,20 +86,20 @@ export const cue = {
     swell.connect(lp).connect(g).connect(master);
     swell.start();
     swell.stop(ctx.currentTime + 1.9);
-    [110, 146, 196, 262].forEach((f, i) => {
+    [55, 66, 82, 110].forEach((f, i) => {
       setTimeout(() => {
-        blip(f, 260, "triangle", 0.07);
-        blip(f * 1.5, 220, "sine", 0.03);
-      }, i * 320);
+        blip(f, 420, "sawtooth", 0.08);
+        tick(300 + i * 120, 120, 0.04, 2);
+      }, i * 380);
     });
   },
   // typewriter: a dry mechanical tick, quieter than a keystroke
-  type: () => blip(1500 + Math.random() * 500, 7, "square", 0.045),
+  type: () => tick(1800 + Math.random() * 900, 14, 0.06, 8),
   // standby: the machine's slow sonar while it works - low ping, faint echo
   think: () => {
-    blip(220, 140, "triangle", 0.11);
-    blip(330, 120, "sine", 0.06);
-    setTimeout(() => blip(165, 200, "sine", 0.05), 120);
+    blip(58, 320, "sawtooth", 0.075);
+    blip(87, 260, "triangle", 0.03);
+    tick(420, 90, 0.035, 3);
   },
 };
 
