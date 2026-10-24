@@ -124,6 +124,40 @@ def sessions() -> list[dict]:
     return _sessions_cache["data"]
 
 
+def transcript(session_id: str, limit: int = 60) -> list[dict]:
+    """Read one session's messages through the CLI. Read-only."""
+    import json
+    import re
+    import subprocess
+
+    if not re.fullmatch(r"ses_[A-Za-z0-9]+", session_id or ""):
+        return []
+    try:
+        res = subprocess.run([str(OPENCODE_EXE), "api", "GET",
+                              f"/api/session/{session_id}/message"],
+                             capture_output=True, text=True, timeout=30,
+                             creationflags=0x08000000)
+        payload = json.loads(res.stdout or "{}")
+    except Exception:
+        return []
+    out = []
+    for message in payload.get("data", [])[-limit:]:
+        parts = []
+        for part in message.get("content", []) or []:
+            kind = part.get("type", "")
+            if kind == "text":
+                parts.append({"kind": "text", "text": part.get("text", "")})
+            elif kind == "reasoning":
+                parts.append({"kind": "reasoning", "text": part.get("text", "")})
+            elif kind in ("tool", "tool-call", "tool_call"):
+                parts.append({"kind": "tool",
+                              "text": part.get("tool") or part.get("name") or "tool",
+                              "status": part.get("state", {}).get("status", "")})
+        out.append({"id": message.get("id", ""), "role": message.get("type", ""),
+                    "at": (message.get("time") or {}).get("created", 0), "parts": parts})
+    return out
+
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code: int, body: bytes, ctype: str) -> None:
         self.send_response(code)
@@ -143,6 +177,10 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(collector.collect())
             except Exception as exc:
                 self._json({"error": str(exc)}, 500)
+            return
+        if path == "/api/chat":
+            sid = (parse_qs(urlparse(self.path).query).get("session") or [""])[0]
+            self._json({"session": sid, "messages": transcript(sid)})
             return
         if path == "/api/sessions":
             self._json({"sessions": sessions()})
