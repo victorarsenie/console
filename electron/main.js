@@ -62,7 +62,7 @@ app.whenReady().then(async () => {
     height: 860,
     minWidth: 900,
     minHeight: 600,
-    backgroundColor: "#08080a",
+    backgroundColor: "#04100a",
     autoHideMenuBar: true,
     fullscreen: true,
     webPreferences: {
@@ -74,7 +74,7 @@ app.whenReady().then(async () => {
   });
 
   const splash = "data:text/html," + encodeURIComponent(
-    '<body style="background:#08080a;color:#ffb000;font-family:monospace;padding:48px">' +
+    '<body style="background:#04100a;color:#35ff7a;font-family:monospace;padding:48px">' +
     'MU/TH/UR 6000<br><br>starting services...</body>');
   win.loadURL(splash);
   log("window created");
@@ -91,7 +91,7 @@ app.whenReady().then(async () => {
   win.loadURL(ok
     ? `http://127.0.0.1:${port}/`
     : "data:text/html," + encodeURIComponent(
-      '<body style="background:#08080a;color:#ff6b5e;font-family:monospace;padding:48px">' +
+      '<body style="background:#04100a;color:#ff6b5e;font-family:monospace;padding:48px">' +
       'server did not start - see electron/server.log</body>'));
 });
 
