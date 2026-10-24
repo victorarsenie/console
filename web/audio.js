@@ -52,15 +52,36 @@ export const cue = {
   bay: () => { blip(660, 60, "triangle", 0.08); setTimeout(() => blip(880, 70, "triangle", 0.07), 70); },
   ok: () => blip(990, 90, "sine", 0.1),
   alert: () => { blip(320, 140, "sawtooth", 0.1, -80); setTimeout(() => blip(220, 200, "sawtooth", 0.1, -60), 150); },
+  // boot: a machine waking up - rising detuned pairs under a soft air swell
   boot: () => {
-    for (let i = 0; i < 7; i++) setTimeout(() => blip(600 + i * 90, 35, "square", 0.05), i * 110);
+    if (!ensure() || muted) return;
+    const swell = ctx.createBufferSource();
+    swell.buffer = noiseBuffer(2);
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.setValueAtTime(180, ctx.currentTime);
+    lp.frequency.linearRampToValueAtTime(900, ctx.currentTime + 1.4);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.06, ctx.currentTime + 0.6);
+    g.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 1.8);
+    swell.connect(lp).connect(g).connect(master);
+    swell.start();
+    swell.stop(ctx.currentTime + 1.9);
+    [110, 146, 196, 262].forEach((f, i) => {
+      setTimeout(() => {
+        blip(f, 260, "triangle", 0.07);
+        blip(f * 1.5, 220, "sine", 0.03);
+      }, i * 320);
+    });
   },
   // typewriter: a dry mechanical tick, quieter than a keystroke
   type: () => blip(1500 + Math.random() * 500, 7, "square", 0.045),
-  // thinking: the machine's slow pulse while it reasons - two detuned servos
+  // standby: the machine's slow sonar while it works - low ping, faint echo
   think: () => {
-    blip(196, 110, "triangle", 0.07);
-    setTimeout(() => blip(294, 90, "square", 0.035), 40);
+    blip(220, 140, "triangle", 0.11);
+    blip(330, 120, "sine", 0.06);
+    setTimeout(() => blip(165, 200, "sine", 0.05), 120);
   },
 };
 

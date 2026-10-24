@@ -393,6 +393,6 @@ main.stage::after { content: ""; position: absolute; inset: 0; pointer-events: n
   padding: 1px 8px; font: inherit; font-size: 12px; line-height: 1.4;
   color: var(--dim); background: #04100a; border: 1px solid #10361f;
   border-radius: 3px; opacity: 0; transition: opacity .15s ease; cursor: pointer; }
-.baycard:hover .solo-btn, .baycard.open .solo-btn { opacity: 1; }
+.baycard:hover .solo-btn { opacity: .85; }
 .baycard .solo-btn:hover { color: var(--amber); border-color: var(--amber); }
-.track.solo .baycard.open .solo-btn { color: var(--amber); border-color: var(--amber); }
+.track.solo .baycard:hover .solo-btn { color: var(--amber); border-color: var(--amber); }

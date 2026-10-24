@@ -1,5 +1,8 @@
 // Electron shell for the console. Written fresh: window first, then the server.
 const { app, BrowserWindow, ipcMain } = require("electron");
+
+// let the boot cue play without waiting for a click
+app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 const { spawn } = require("child_process");
 const http = require("http");
 const fs = require("fs");

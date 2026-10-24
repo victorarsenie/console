@@ -317,6 +317,21 @@ function typeLast(log) {
   }, 18);
 }
 
+function paintLog() {
+  const log = document.getElementById("chatlog");
+  if (!log) return;
+  const html = transcriptHtml(chat) || '<div class="row dim">no messages yet - type below</div>';
+  if (html === lastLogHtml) return;
+  const stick = log.scrollHeight - log.scrollTop - log.clientHeight < 60;
+  log.innerHTML = html;
+  lastLogHtml = html;
+  log.querySelectorAll("details.fold").forEach((d) => {
+    if (openFolds.has(d.dataset.key)) d.open = true;
+  });
+  if (stick) log.scrollTop = log.scrollHeight;
+  typeLast(log);
+}
+
 async function loadChat() {
   if (loadingChat) return;
   loadingChat = true;
@@ -345,19 +360,8 @@ async function loadChat() {
     const busy = thinking || running || Date.now() < activeUntil;
     if (busy && !isBusy) cue.think();
     isBusy = busy;
-    if (log) {
-      const html = transcriptHtml(chat) || '<div class="row dim">no messages yet - type below</div>';
-      if (html !== lastLogHtml) {
-        const stick = log.scrollHeight - log.scrollTop - log.clientHeight < 60;
-        log.innerHTML = html;
-        lastLogHtml = html;
-        log.querySelectorAll("details.fold").forEach((d) => {
-          if (openFolds.has(d.dataset.key)) d.open = true;
-        });
-        if (stick) log.scrollTop = log.scrollHeight;
-        typeLast(log);
-      }
-    }
+    if (log) log.dataset.busy = busy ? "1" : "0";
+    paintLog();
   } catch (err) {
     const log = document.getElementById("chatlog");
     if (log) log.innerHTML = `<div class="line bad">link down: ${esc(String(err))}</div>`;
@@ -368,6 +372,9 @@ async function loadChat() {
 
 async function sendPrompt(text) {
   if (!activeSession) return toast("select a session first", true);
+  chat = chat.concat([{ id: "local-" + Date.now(), role: "user", parts: [{ kind: "text", text }] }]);
+  lastLogHtml = "";
+  paintLog();
   const res = await fetch(`/api/chat/send?session=${activeSession}&text=${encodeURIComponent(text)}`, { method: "POST" });
   const data = await res.json();
   toast(data.ok ? "sent" : (data.message || "send failed"), !data.ok);
