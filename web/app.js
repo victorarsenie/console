@@ -35,9 +35,6 @@ const BAYS = [
     number: (s) => `${s.projects.length}`, unit: () => "projects", render: renderBerth },
   { id: "terminal", label: "terminal", glyph: "C", note: "opencode conversation",
     number: () => `${chat.length}`, unit: () => "messages", render: renderTerminal },
-  { id: "sessions", label: "sessions", glyph: "K", note: "opencode sessions",
-    number: () => `${(window.__sessions || []).length}`, unit: () => "recent",
-    render: renderSessions },
   { id: "procedures", label: "procedures", glyph: "P", note: "board and runs",
     number: (s) => `${(s.board.doing || []).length}`, unit: () => "in progress",
     render: renderProcedures },
@@ -179,13 +176,28 @@ async function loadSessions() {
     const res = await fetch("/api/sessions", { cache: "no-store" });
     const data = await res.json();
     window.__sessions = data.sessions || [];
-    if (open === "sessions") render();
+    const list = document.getElementById("sess-list");
+    if (list) list.innerHTML = sessionRows();
+    if (open === "terminal" && !activeSession && window.__sessions.length) {
+      activeSession = window.__sessions[0].id;
+      loadChat();
+    }
   } catch (err) { window.__sessions = []; }
 }
 
 function openBay(id) {
   if (id !== open) cue.bay();
   open = id;
+  if (id === "terminal") {
+    render();
+    loadChat();
+    return;
+  }
+  const track = document.getElementById("track");
+  if (track && track.classList.contains("console-mode")) {
+    track.classList.remove("console-mode");
+    render();
+  }
   document.querySelectorAll(".baycard").forEach((card) => {
     const isOpen = card.dataset.bay === id;
     card.classList.toggle("open", isOpen);
@@ -197,30 +209,38 @@ function openBay(id) {
 let activeSession = "";
 let chat = [];
 
-function renderTerminal() {
-  const sessions = (window.__sessions || []).slice(0, 18);
-  const current = sessions.find((s) => s.id === activeSession);
-  const model = current ? current.model : (window.__models && window.__models[0]) || "unknown";
-  const side = sessions.map((s) => `
+function sessionRows() {
+  const sessions = (window.__sessions || []).slice(0, 40);
+  return sessions.map((s) => `
       <div class="sess ${s.id === activeSession ? "on" : ""}" data-session="${esc(s.id)}">
-        <div class="t">${esc((s.title || "untitled").slice(0, 42))}</div>
-        <div class="m">${esc((s.model || "").slice(0, 26))}</div>
+        <div class="t">${esc((s.title || "untitled").slice(0, 46))}</div>
+        <div class="m">${esc((s.model || "").slice(0, 28))}</div>
       </div>`).join("") || `<div class="row dim">no sessions</div>`;
-  return `<div class="term-wrap">
-    <aside class="term-side">
+}
+
+function modelOf() {
+  const current = (window.__sessions || []).find((s) => s.id === activeSession);
+  return current ? current.model : "unknown";
+}
+
+function renderTerminal() {
+  const split = localStorage.getItem("console.split") || "340";
+  return `<div class="console" id="console" style="--split:${split}px">
+    <aside class="sess-pane">
       <div class="side-head">sessions <button data-act="session-new">+ new</button></div>
-      <div class="side-list">${side}</div>
-      <div class="side-model">model<span>${esc(model)}</span></div>
+      <div class="side-list" id="sess-list">${sessionRows()}</div>
+      <div class="side-model">model<span id="sess-model">${esc(modelOf())}</span></div>
     </aside>
-    <div class="crt-term">
-      <div class="term-head">${activeSession ? esc(activeSession) : "no session"}<span class="dim">&nbsp;${esc(model)}</span></div>
+    <div class="gutter" id="gutter"></div>
+    <section class="crt-term">
+      <div class="term-head"><span id="term-meta">${activeSession ? esc(activeSession) : "no session"}</span><span class="dim" id="term-model">${esc(modelOf())}</span></div>
       <div class="term-log" id="chatlog"></div>
       <div class="term-input">
         <span class="prompt-caret">&gt;</span>
         <input id="chat-text" placeholder="type a prompt, enter to send" autocomplete="off">
         <button data-act="chat-send">send</button>
       </div>
-    </div>
+    </section>
   </div>`;
 }
 
@@ -239,6 +259,12 @@ async function loadChat() {
     if (!first) return;
     activeSession = first.id;
   }
+  const meta = document.getElementById("term-meta");
+  const modelEl = document.getElementById("term-model");
+  const sideModel = document.getElementById("sess-model");
+  if (meta) meta.textContent = activeSession;
+  if (modelEl) modelEl.textContent = modelOf();
+  if (sideModel) sideModel.textContent = modelOf();
   try {
     const res = await fetch(`/api/chat?session=${activeSession}`, { cache: "no-store" });
     const data = await res.json();
@@ -253,10 +279,13 @@ async function loadChat() {
           return `<div class="line dim">[${esc(p.text)}]</div>`;
         }).join("");
         return `<div class="msg ${m.role}"><div class="who">${who}</div>${body || '<div class="line dim">...</div>'}</div>`;
-      }).join("") || '<div class="row dim">empty</div>';
+      }).join("") || '<div class="row dim">no messages yet - type below</div>';
       log.scrollTop = log.scrollHeight;
     }
-  } catch (err) { /* leave the last good transcript */ }
+  } catch (err) {
+    const log = document.getElementById("chatlog");
+    if (log) log.innerHTML = `<div class="line bad">link down: ${esc(String(err))}</div>`;
+  }
 }
 
 async function sendPrompt(text) {
@@ -270,6 +299,12 @@ async function sendPrompt(text) {
 
 function renderShell() {
   const track = $("#track");
+  if (open === "terminal") {
+    track.classList.add("console-mode");
+    track.innerHTML = renderTerminal();
+    return;
+  }
+  track.classList.remove("console-mode");
   const openIndex = BAYS.findIndex((b) => b.id === open);
   const spine = (bay, index) => `
     <article class="baycard" data-bay="${bay.id}">
@@ -343,6 +378,7 @@ function render() {
   if (!state) return;
   lastRender = Date.now();
   if (String(window.getSelection() || "").length > 0) return;
+  if (open === "terminal" && document.getElementById("console")) return;
   renderShell();
   updateLive();
   $("#dot").className = "dot" + (state.alerts.length ? " bad" : "");
@@ -436,6 +472,25 @@ fetch("/api/models").then((r) => r.json()).then((d) => { window.__models = d.mod
   }
 });
 
+document.addEventListener("mousedown", (event) => {
+  if (!event.target.closest("#gutter")) return;
+  const box = document.getElementById("console");
+  if (!box) return;
+  event.preventDefault();
+  const move = (ev) => {
+    const rect = box.getBoundingClientRect();
+    const px = Math.max(220, Math.min(rect.width - 360, ev.clientX - rect.left));
+    box.style.setProperty("--split", px + "px");
+    localStorage.setItem("console.split", String(Math.round(px)));
+  };
+  const up = () => {
+    document.removeEventListener("mousemove", move);
+    document.removeEventListener("mouseup", up);
+  };
+  document.addEventListener("mousemove", move);
+  document.addEventListener("mouseup", up);
+});
+
 document.addEventListener("keydown", (event) => {
   if (["INPUT", "SELECT"].includes(event.target.tagName)) {
     if (event.key === "Enter" && event.target.id === "t") {
@@ -450,7 +505,7 @@ document.addEventListener("keydown", (event) => {
     return;
   }
   const index = BAYS.findIndex((b) => b.id === open);
-  if (/^[1-7]$/.test(event.key)) { openBay(BAYS[Number(event.key) - 1].id); }
+  if (/^[1-6]$/.test(event.key)) { openBay(BAYS[Number(event.key) - 1].id); }
   else if (event.key === "ArrowRight") { openBay(BAYS[Math.min(BAYS.length - 1, index + 1)].id); }
   else if (event.key === "ArrowLeft") { openBay(BAYS[Math.max(0, index - 1)].id); }
   else if (event.key.toLowerCase() === "r") poll();

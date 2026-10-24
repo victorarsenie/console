@@ -141,7 +141,9 @@ def transcript(session_id: str, limit: int = 60) -> list[dict]:
     except Exception:
         return []
     out = []
-    for message in payload.get("data", [])[-limit:]:
+    rows = payload.get("data", []) or []
+    rows.sort(key=lambda m: (m.get("time") or {}).get("created", 0))
+    for message in rows[-limit:]:
         parts = []
         payload = message.get("payload") or {}
         if message.get("type") == "user" and isinstance(payload.get("text"), str):

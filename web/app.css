@@ -302,3 +302,16 @@ main.stage::after { content: ""; position: absolute; inset: 0; pointer-events: n
   letter-spacing: .2em; text-transform: uppercase; color: var(--dim); }
 .side-model span { display: block; margin-top: 3px; color: var(--amber); letter-spacing: 0;
   text-transform: none; font-size: 11px; }
+
+/* console mode: the terminal owns the stage, sessions on the left half */
+.track.console-mode { align-items: stretch; }
+.console { flex: 1 1 auto; display: grid; grid-template-columns: var(--split, 340px) 10px 1fr;
+  height: 100%; min-height: 0; }
+.sess-pane { display: flex; flex-direction: column; min-height: 0; border: 1px solid #2a1d08;
+  border-right: 0; border-radius: 12px 0 0 12px; background: #07070a; overflow: hidden; }
+.gutter { cursor: col-resize; position: relative; background: #0b0b0e; }
+.gutter::before { content: ""; position: absolute; top: 0; bottom: 0; left: 4px; width: 2px;
+  background: #2a1d08; }
+.gutter:hover::before, .gutter:active::before { background: var(--amber); box-shadow: 0 0 8px rgba(255,176,0,.5); }
+.console .crt-term { border-radius: 0 12px 12px 0; }
+.sess-pane .side-list { flex: 1; overflow: auto; min-height: 0; }
