@@ -181,6 +181,17 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as exc:
                 self._json({"error": str(exc)}, 500)
             return
+        if path == "/api/models":
+            import subprocess as _sp
+            try:
+                res = _sp.run([str(OPENCODE_EXE), "models"], capture_output=True, text=True,
+                              encoding="utf-8", errors="replace", timeout=60,
+                              creationflags=0x08000000)
+                lines = [ln.strip() for ln in (res.stdout or "").splitlines() if ln.strip()]
+            except Exception:
+                lines = []
+            self._json({"models": lines[:200]})
+            return
         if path == "/api/chat":
             sid = (parse_qs(urlparse(self.path).query).get("session") or [""])[0]
             self._json({"session": sid, "messages": transcript(sid)})
@@ -245,6 +256,25 @@ class Handler(BaseHTTPRequestHandler):
                                  timeout=30, creationflags=0x08000000)
             out = (res.stdout or res.stderr).strip().splitlines()
             self._json({"ok": res.returncode == 0, "message": out[-1] if out else "queued"})
+            return
+        if parsed.path == "/api/session/new":
+            import json as _json
+            import subprocess as _sp
+            body = {"directory": str(Path.cwd())}
+            model = (parse_qs(parsed.query).get("model") or [""])[0]
+            if model:
+                body["model"] = model
+            try:
+                res = _sp.run([str(OPENCODE_EXE), "api", "POST", "/api/session",
+                               "-d", _json.dumps(body)],
+                              capture_output=True, text=True, encoding="utf-8",
+                              errors="replace", timeout=120, creationflags=0x08000000)
+                data = _json.loads(res.stdout or "{}")
+                sid = (data.get("data") or {}).get("id", "")
+                self._json({"ok": bool(sid), "session": sid,
+                            "message": "" if sid else (res.stderr or "")[:160]})
+            except Exception as exc:
+                self._json({"ok": False, "message": str(exc)})
             return
         if parsed.path == "/api/chat/send":
             sid = (parse_qs(parsed.query).get("session") or [""])[0]

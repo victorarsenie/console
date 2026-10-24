@@ -198,26 +198,40 @@ let activeSession = "";
 let chat = [];
 
 function renderTerminal() {
-  const rows = chat.slice(-40).map((m) => {
-    const who = m.role === "user" ? "you" : m.role === "assistant" ? "mu/th/ur" : m.role;
-    const body = (m.parts || []).map((p) => {
-      if (p.kind === "text") return `<div class="line">${esc(p.text)}</div>`;
-      if (p.kind === "reasoning") return `<div class="line dim">thinking... ${esc((p.text || "").slice(0, 90))}</div>`;
-      return `<div class="line dim">[${esc(p.text)}${p.status ? " " + esc(p.status) : ""}]</div>`;
-    }).join("");
-    return `<div class="msg ${m.role}"><div class="who">${who}</div>${body || '<div class="line dim">...</div>'}</div>`;
-  }).join("");
-  return `<div class="crt-term">
-      <div class="term-head">${activeSession ? esc(activeSession) : "no session selected - pick one in sessions"}
-        <button data-act="chat-refresh">refresh</button></div>
-      <div class="term-log" id="chatlog">${rows || '<div class="row dim">empty</div>'}</div>
+  const sessions = (window.__sessions || []).slice(0, 18);
+  const current = sessions.find((s) => s.id === activeSession);
+  const model = current ? current.model : (window.__models && window.__models[0]) || "unknown";
+  const side = sessions.map((s) => `
+      <div class="sess ${s.id === activeSession ? "on" : ""}" data-session="${esc(s.id)}">
+        <div class="t">${esc((s.title || "untitled").slice(0, 42))}</div>
+        <div class="m">${esc((s.model || "").slice(0, 26))}</div>
+      </div>`).join("") || `<div class="row dim">no sessions</div>`;
+  return `<div class="term-wrap">
+    <aside class="term-side">
+      <div class="side-head">sessions <button data-act="session-new">+ new</button></div>
+      <div class="side-list">${side}</div>
+      <div class="side-model">model<span>${esc(model)}</span></div>
+    </aside>
+    <div class="crt-term">
+      <div class="term-head">${activeSession ? esc(activeSession) : "no session"}<span class="dim">&nbsp;${esc(model)}</span></div>
+      <div class="term-log" id="chatlog"></div>
       <div class="term-input">
         <span class="prompt-caret">&gt;</span>
         <input id="chat-text" placeholder="type a prompt, enter to send" autocomplete="off">
         <button data-act="chat-send">send</button>
       </div>
-    </div>`;
+    </div>
+  </div>`;
 }
+
+window.__sendPrompt = function () {
+  const input = document.getElementById("chat-text");
+  const text = input && input.value.trim();
+  if (!text) return;
+  if (!activeSession) { toast("pick a session first", true); return; }
+  input.value = "";
+  sendPrompt(text);
+};
 
 async function loadChat() {
   if (!activeSession) {
@@ -354,6 +368,7 @@ function toast(message, bad) {
   window.addEventListener(evt, () => startAudio(), { once: true }));
 
 document.addEventListener("click", (event) => {
+  if (event.target.closest("[data-act='chat-send']")) { window.__sendPrompt(); return; }
   // keep a selection alive: a click must not clear what the user highlighted
   if (String(window.getSelection() || "").length > 0) return;
   if (event.target.closest("[data-act='clear-filter']")) { projectFilter = ""; render(); return; }
@@ -361,6 +376,14 @@ document.addEventListener("click", (event) => {
     const input = document.getElementById("chat-text");
     const text = input && input.value.trim();
     if (text) { input.value = ""; sendPrompt(text); }
+    return;
+  }
+  if (event.target.closest("[data-act='session-new']")) {
+    fetch("/api/session/new", { method: "POST" }).then((r) => r.json()).then((d) => {
+      toast(d.ok ? "session created" : (d.message || "create failed"), !d.ok);
+      if (d.ok && d.session) { activeSession = d.session; loadSessions();
+fetch("/api/models").then((r) => r.json()).then((d) => { window.__models = d.models || []; }).catch(() => {}); setTimeout(loadChat, 800); render(); }
+    });
     return;
   }
   const sessRow = event.target.closest("[data-session]");
