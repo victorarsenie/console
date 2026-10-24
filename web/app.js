@@ -266,6 +266,29 @@ window.__sendPrompt = function () {
   sendPrompt(text);
 };
 
+let lastLogHtml = "";
+
+function transcriptHtml(messages) {
+  return (messages || [])
+    .filter((m) => m.role !== "idle" && m.role !== "synthetic")
+    .slice(-40).map((m) => {
+      const who = m.role === "user" ? "you" : m.role === "assistant" ? "mu/th/ur" : m.role;
+      const seen = new Set();
+      const body = (m.parts || []).filter((p) => {
+        const key = `${p.kind}|${p.text}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }).map((p) => {
+        if (p.kind === "text") return `<div class="line">${esc(p.text)}</div>`;
+        if (p.kind === "error") return `<div class="line bad">${esc(p.text)}</div>`;
+        if (p.kind === "reasoning") return `<div class="line dim">thinking... ${esc((p.text || "").slice(0, 90))}</div>`;
+        return `<div class="line dim">[${esc(p.text)}]</div>`;
+      }).join("");
+      return body ? `<div class="msg ${m.role}"><div class="who">${who}</div>${body}</div>` : "";
+    }).join("");
+}
+
 async function loadChat() {
   if (!activeSession) {
     const first = (window.__sessions || [])[0];
@@ -284,17 +307,13 @@ async function loadChat() {
     chat = data.messages || [];
     const log = document.getElementById("chatlog");
     if (log) {
-      log.innerHTML = chat.slice(-40).map((m) => {
-        const who = m.role === "user" ? "you" : m.role === "assistant" ? "mu/th/ur" : m.role;
-        const body = (m.parts || []).map((p) => {
-          if (p.kind === "text") return `<div class="line">${esc(p.text)}</div>`;
-          if (p.kind === "error") return `<div class="line bad">${esc(p.text)}</div>`;
-          if (p.kind === "reasoning") return `<div class="line dim">thinking... ${esc((p.text || "").slice(0, 90))}</div>`;
-          return `<div class="line dim">[${esc(p.text)}]</div>`;
-        }).join("");
-        return `<div class="msg ${m.role}"><div class="who">${who}</div>${body || '<div class="line dim">...</div>'}</div>`;
-      }).join("") || '<div class="row dim">no messages yet - type below</div>';
-      log.scrollTop = log.scrollHeight;
+      const html = transcriptHtml(chat) || '<div class="row dim">no messages yet - type below</div>';
+      if (html !== lastLogHtml) {
+        const stick = log.scrollHeight - log.scrollTop - log.clientHeight < 60;
+        log.innerHTML = html;
+        lastLogHtml = html;
+        if (stick) log.scrollTop = log.scrollHeight;
+      }
     }
   } catch (err) {
     const log = document.getElementById("chatlog");
@@ -316,6 +335,7 @@ function renderShell() {
   if (open === "terminal") {
     track.classList.add("console-mode");
     track.innerHTML = renderTerminal();
+    lastLogHtml = "";
     fillModels();
     return;
   }
@@ -445,7 +465,7 @@ document.addEventListener("click", (event) => {
     return;
   }
   const sessRow = event.target.closest("[data-session]");
-  if (sessRow) { activeSession = sessRow.dataset.session; chat = []; openBay("terminal"); loadChat(); return; }
+  if (sessRow) { activeSession = sessRow.dataset.session; chat = []; lastLogHtml = ""; openBay("terminal"); loadChat(); return; }
   if (event.target.closest("[data-act='chat-refresh']")) { loadChat(); return; }
   const projRow = event.target.closest("[data-proj]");
   if (projRow) { projectFilter = projRow.dataset.proj; open = "procedures"; render(); return; }
