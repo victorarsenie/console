@@ -290,7 +290,7 @@ function transcriptHtml(messages) {
 
 const typedLen = new Map();
 let typeTimer = null;
-let lastThinkAt = 0;
+let isThinking = false;
 
 function typeLast(log) {
   const lines = log.querySelectorAll(".line");
@@ -332,12 +332,14 @@ async function loadChat() {
     const data = await res.json();
     chat = data.messages || [];
     const log = document.getElementById("chatlog");
-    const lastMsg = chat[chat.length - 1];
-    const lastPart = lastMsg && (lastMsg.parts || [])[(lastMsg.parts || []).length - 1];
-    if (lastPart && lastPart.kind === "reasoning" && Date.now() - lastThinkAt > 1100) {
-      lastThinkAt = Date.now();
-      cue.think();
-    }
+    const live = chat.filter((m) => m.role !== "idle" && m.role !== "synthetic");
+    const lastMsg = live[live.length - 1];
+    const parts = (lastMsg && lastMsg.parts) || [];
+    const lastPart = parts[parts.length - 1];
+    const thinking = !!lastPart && lastPart.kind === "reasoning"
+      && lastMsg.role === "assistant";
+    if (thinking && !isThinking) cue.think();
+    isThinking = thinking;
     if (log) {
       const html = transcriptHtml(chat) || '<div class="row dim">no messages yet - type below</div>';
       if (html !== lastLogHtml) {
@@ -716,6 +718,7 @@ fetch("/api/models").then((r) => r.json()).then((d) => {
 }).catch(() => {});
 setInterval(loadSessions, 20000);
 setInterval(() => { if (open === "terminal") loadChat(); }, 3000);
+setInterval(() => { if (isThinking && open === "terminal") cue.think(); }, 1200);
 poll(); setInterval(poll, 3000);
 
 $("#prev").addEventListener("click", () => step(-1));
