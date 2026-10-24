@@ -75,3 +75,24 @@ its binary; `node node_modules/electron/install.js` fixes it.
   proves nothing; check the content type.
 - GUI rule that keeps biting: a bay renderer wired with `bay.render` throws when the
   BAYS entry has no `render` key, and the whole page goes blank (42 KB screenshot).
+
+## Two Windows traps worth keeping (2026-10-24)
+
+- `spawn("python.exe")` kept a console alive and could stall; `pythonw.exe` removes it.
+  The shell now starts the server with pythonw and retries once before showing an error.
+- Subprocesses cannot execute the npm shim: `opencode` resolves to `opencode.cmd`, and
+  `CreateProcess` will not run a `.cmd`. The sessions API was empty until the console
+  called `...\@opencode\cli\bin\opencode.exe` by absolute path. Same class of bug as
+  `Set-Content` writing a BOM: the tool works in a shell, not from a process.
+- A previously started server keeps the old code in memory. After changing `window.py`
+  the tab showed "no sessions" until the app was restarted; the fix looked broken while
+  the fix was only not loaded.
+
+## Portfolio value
+
+The console is both a project and a line of research: a working desktop application
+with an HTTP API, a file-backed board, a knowledge-layer integration and a written
+log of every failure that shaped it. For a portfolio its value is not the feature
+list but the traceable decisions - Electron over pywebview (four native crashes),
+one asset-free shell over a browser tab, ASCII over glyphs (mojibake twice), and
+guards over permissions (one engine on :8080 at a time).
