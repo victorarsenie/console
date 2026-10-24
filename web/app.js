@@ -282,7 +282,7 @@ function transcriptHtml(messages) {
         const args = argLabel(p);
         const body = [p.args ? "input: " + p.args : "", p.out ? "output: " + p.out : ""]
           .filter(Boolean).join("\n\n") || "no payload";
-        return `<details class="fold tool" data-key="t${key}"><summary><span class="chip">${esc(p.text)}</span> ${esc(p.status || "")} ${esc(args)}</summary><pre>${esc(body)}</pre></details>`;
+        return `<details class="fold tool${p.status === "running" ? " running" : ""}" data-key="t${key}"><summary><span class="chip">${esc(p.text)}</span> ${esc(p.status || "")} ${esc(args)}</summary><pre>${esc(body)}</pre></details>`;
       }).join("");
       return body ? `<div class="msg ${m.role}" data-id="${esc(m.id || "")}"><div class="who">${who}</div>${body}</div>` : "";
     }).join("");
@@ -291,6 +291,8 @@ function transcriptHtml(messages) {
 const typedLen = new Map();
 let typeTimer = null;
 let isThinking = false;
+let activeUntil = 0;
+let loadingChat = false;
 
 function typeLast(log) {
   const lines = log.querySelectorAll(".line");
@@ -316,6 +318,8 @@ function typeLast(log) {
 }
 
 async function loadChat() {
+  if (loadingChat) return;
+  loadingChat = true;
   if (!activeSession) {
     const first = (window.__sessions || [])[0];
     if (!first) return;
@@ -328,8 +332,7 @@ async function loadChat() {
   if (modelEl) modelEl.textContent = modelOf();
   if (sideModel) sideModel.textContent = modelOf();
   try {
-    const res = await fetch(`/api/chat?session=${activeSession}`, { cache: "no-store" });
-    const data = await res.json();
+    const res = await fetch(`/api/chat?session=${activeSession}`, { cache: "no-store" });    const data = await res.json();
     chat = data.messages || [];
     const log = document.getElementById("chatlog");
     const live = chat.filter((m) => m.role !== "idle" && m.role !== "synthetic");
@@ -356,6 +359,8 @@ async function loadChat() {
   } catch (err) {
     const log = document.getElementById("chatlog");
     if (log) log.innerHTML = `<div class="line bad">link down: ${esc(String(err))}</div>`;
+  } finally {
+    loadingChat = false;
   }
 }
 
@@ -364,6 +369,7 @@ async function sendPrompt(text) {
   const res = await fetch(`/api/chat/send?session=${activeSession}&text=${encodeURIComponent(text)}`, { method: "POST" });
   const data = await res.json();
   toast(data.ok ? "sent" : (data.message || "send failed"), !data.ok);
+  if (data.ok) activeUntil = Date.now() + 90000;
   setTimeout(loadChat, 1200);
   setTimeout(loadChat, 4000);
 }
@@ -718,6 +724,7 @@ fetch("/api/models").then((r) => r.json()).then((d) => {
 }).catch(() => {});
 setInterval(loadSessions, 20000);
 setInterval(() => { if (open === "terminal") loadChat(); }, 3000);
+setInterval(() => { if (open === "terminal" && Date.now() < activeUntil) loadChat(); }, 1200);
 setInterval(() => { if (isThinking && open === "terminal") cue.think(); }, 1200);
 poll(); setInterval(poll, 3000);
 

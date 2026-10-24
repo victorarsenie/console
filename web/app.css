@@ -290,6 +290,9 @@ main.stage::after { content: ""; position: absolute; inset: 0; pointer-events: n
   text-transform: none; }
 .crt-term .chip { color: var(--amber); border: 1px solid #3a2a10; padding: 0 4px;
   margin-right: 4px; font-size: 10px; }
+.crt-term .fold.tool.running summary { color: #ffcf6b; }
+.crt-term .fold.tool.running summary::after { content: " *"; animation: thinkblink 1s steps(1) infinite; }
+@keyframes thinkblink { 50% { opacity: .25; } }
 .crt-term .who { color: #8f6a1d; }
 .crt-term .msg.user .who { color: #ffd68a; }
 .crt-term .msg.user .line { color: #ffe9b8; }
