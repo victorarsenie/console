@@ -378,7 +378,7 @@ function render() {
   if (!state) return;
   lastRender = Date.now();
   if (String(window.getSelection() || "").length > 0) return;
-  if (open === "terminal" && document.getElementById("console")) return;
+  if (open === "terminal" && $("#track").classList.contains("console-mode")) return;
   renderShell();
   updateLive();
   $("#dot").className = "dot" + (state.alerts.length ? " bad" : "");

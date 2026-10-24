@@ -97,3 +97,32 @@ log of every failure that shaped it. For a portfolio its value is not the featur
 list but the traceable decisions - Electron over pywebview (four native crashes),
 one asset-free shell over a browser tab, ASCII over glyphs (mojibake twice), and
 guards over permissions (one engine on :8080 at a time).
+
+## Terminal bay (2026-10-24)
+
+The terminal bay owns the whole stage now: sessions on the left half (own scroll,
++ new), the CRT screen on the right, and a gutter that resizes the split and remembers
+the width in localStorage. The separate sessions card is gone - it duplicated the pane.
+
+The bug that made sending look dead was ordering, not transport. The API returns a
+session's messages newest-first, and the view rendered that order while scrolling to
+the bottom - so the newest turn sat off-screen at the top and the visible last line was
+the oldest. `_messages` sorts by `time.created` before slicing now. Send itself had
+been working since the route moved into do_POST.
+
+What this bay needs to feel like the OpenCode terminal, in order:
+
+- model selection per session (the readout is honest now, but read-only),
+- approvals and queued prompts while a turn is running,
+- streaming instead of 3 s polling (the CLI blocks per call, ~2-4 s).
+
+Traps confirmed today:
+
+- A prompt inside a <form> navigates the Electron window to the submit URL. That is
+  the "console restarted" report. No form anywhere; button + keydown only.
+- A click handler that begins with "if text is selected, return" swallows every button
+  under it. The send branch must be the first check in the handler.
+- A route added to do_GET answers "unknown endpoint" when the UI POSTs.
+- User messages keep their text under payload.text, not in content[].
+- render() rebuilding the stage on every poll wipes a live transcript; skip the shell
+  render while the console is mounted and update only #chatlog.

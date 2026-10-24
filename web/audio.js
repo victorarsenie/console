@@ -2,12 +2,11 @@
 // so tuning a cue is editing a number, not hunting an asset.
 //
 // Autoplay rules mean nothing sounds until the user interacts: `start()` is called from
-// the first click/keypress, and the hum begins then.
+// the first click/keypress. There is no drone - only short cues.
 const MUTE_KEY = "muther.muted";
 
 let ctx = null;
 let master = null;
-let hum = null;
 let muted = localStorage.getItem(MUTE_KEY) === "1";
 
 function ensure() {
@@ -27,45 +26,6 @@ function noiseBuffer(seconds) {
   const data = buf.getChannelData(0);
   for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
   return buf;
-}
-
-// A low drone: two detuned saws through a low-pass, plus filtered noise as "air".
-function startHum() {
-  if (!ensure() || hum) return;
-  const g = ctx.createGain();
-  g.gain.value = 0.16;
-  const filter = ctx.createBiquadFilter();
-  filter.type = "lowpass";
-  filter.frequency.value = 220;
-  filter.Q.value = 0.7;
-
-  const a = ctx.createOscillator();
-  a.type = "sawtooth";
-  a.frequency.value = 54;
-  const b = ctx.createOscillator();
-  b.type = "sawtooth";
-  b.frequency.value = 56.5;
-
-  const air = ctx.createBufferSource();
-  air.buffer = noiseBuffer(2);
-  air.loop = true;
-  const airGain = ctx.createGain();
-  airGain.gain.value = 0.05;
-
-  a.connect(filter); b.connect(filter);
-  air.connect(airGain).connect(filter);
-  filter.connect(g).connect(master);
-  a.start(); b.start(); air.start();
-
-  // slow wobble, the difference between "drone" and "machine room"
-  const lfo = ctx.createOscillator();
-  lfo.frequency.value = 0.11;
-  const lfoGain = ctx.createGain();
-  lfoGain.gain.value = 0.04;
-  lfo.connect(lfoGain).connect(g.gain);
-  lfo.start();
-
-  hum = { a, b, air, lfo, g };
 }
 
 function blip(freq = 880, ms = 45, type = "square", gain = 0.09, slide = 0) {
@@ -95,7 +55,6 @@ export const cue = {
 export function start() {
   if (!ensure()) return;
   if (ctx.state === "suspended") ctx.resume();
-  startHum();
 }
 
 export function setMuted(value) {
