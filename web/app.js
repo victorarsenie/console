@@ -30,6 +30,9 @@ const BAYS = [
     number: (s) => fmt(totalNotes(s)), unit: () => "notes", render: renderArchive },
   { id: "berth", label: "berth", glyph: "B", note: "projects and cards",
     number: (s) => `${s.projects.length}`, unit: () => "projects", render: renderBerth },
+  { id: "sessions", label: "sessions", glyph: "K", note: "opencode sessions",
+    number: () => `${(window.__sessions || []).length}`, unit: () => "recent",
+    render: renderSessions },
   { id: "procedures", label: "procedures", glyph: "P", note: "board and runs",
     number: (s) => `${(s.board.doing || []).length}`, unit: () => "in progress",
     render: renderProcedures },
@@ -156,6 +159,25 @@ function renderProcedures(s) {
 }
 
 /* ---------- shell ---------- */
+function renderSessions() {
+  const rows = window.__sessions || [];
+  if (!rows.length) return `<div class="row dim">no sessions, or the service is down</div>`;
+  return rows.slice(0, 12).map((s) => `<div class="panel">
+      <h3>${esc(s.title).slice(0, 58)}</h3>
+      <div class="row dim">${esc(s.dir)}</div>
+      <div class="row dim">${esc(s.model)} - ${esc(s.outcome)} - ${s.cost} usd</div>
+    </div>`).join("");
+}
+
+async function loadSessions() {
+  try {
+    const res = await fetch("/api/sessions", { cache: "no-store" });
+    const data = await res.json();
+    window.__sessions = data.sessions || [];
+    if (open === "sessions") render();
+  } catch (err) { window.__sessions = []; }
+}
+
 function renderShell() {
   const track = $("#track");
   const openIndex = BAYS.findIndex((b) => b.id === open);
@@ -307,7 +329,7 @@ document.addEventListener("keydown", (event) => {
     return;
   }
   const index = BAYS.findIndex((b) => b.id === open);
-  if (/^[1-5]$/.test(event.key)) { open = BAYS[Number(event.key) - 1].id; render(); }
+  if (/^[1-6]$/.test(event.key)) { open = BAYS[Number(event.key) - 1].id; render(); }
   else if (event.key === "ArrowRight") { open = BAYS[Math.min(BAYS.length - 1, index + 1)].id; render(); }
   else if (event.key === "ArrowLeft") { open = BAYS[Math.max(0, index - 1)].id; render(); }
   else if (event.key.toLowerCase() === "r") poll();
@@ -349,6 +371,8 @@ function tick() { $("#clock").textContent = new Date().toTimeString().slice(0, 8
 tick(); setInterval(tick, 1000);
 loadFlows();
 setTimeout(loadFlows, 600);
+loadSessions();
+setInterval(loadSessions, 20000);
 poll(); setInterval(poll, 3000);
 
 $("#prev").addEventListener("click", () => step(-1));
