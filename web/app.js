@@ -375,6 +375,7 @@ function renderShell() {
           <div class="cap">${unit || bay.note}</div>
           ${bayVisual(bay.id, state)}
         </div>
+        <div class="vsplit" title="drag to resize"></div>
         <div class="copy">${(bay.render || (() => ""))(state)}</div>
       </div>
     </article>`;
@@ -521,6 +522,25 @@ document.addEventListener("change", (event) => {
 });
 
 document.addEventListener("mousedown", (event) => {
+  const split = event.target.closest(".vsplit");
+  if (!split) return;
+  const box = split.parentElement;
+  if (!box) return;
+  event.preventDefault();
+  const move = (ev) => {
+    const rect = box.getBoundingClientRect();
+    const px = Math.max(200, Math.min(rect.width - 260, ev.clientX - rect.left));
+    box.style.setProperty("--split", px + "px");
+  };
+  const up = () => {
+    document.removeEventListener("mousemove", move);
+    document.removeEventListener("mouseup", up);
+  };
+  document.addEventListener("mousemove", move);
+  document.addEventListener("mouseup", up);
+});
+
+document.addEventListener("mousedown", (event) => {
   if (!event.target.closest("#gutter")) return;
   const box = document.getElementById("console");
   if (!box) return;
@@ -558,6 +578,12 @@ document.addEventListener("keydown", (event) => {
     return;
   }
   const index = BAYS.findIndex((b) => b.id === open);
+  if (event.key.toLowerCase() === "f") {
+    const track = document.getElementById("track");
+    track.classList.toggle("solo");
+    localStorage.setItem("console.solo", track.classList.contains("solo") ? "1" : "0");
+    return;
+  }
   if (/^[1-6]$/.test(event.key)) { openBay(BAYS[Number(event.key) - 1].id); }
   else if (event.key === "ArrowRight") { openBay(BAYS[Math.min(BAYS.length - 1, index + 1)].id); }
   else if (event.key === "ArrowLeft") { openBay(BAYS[Math.max(0, index - 1)].id); }
@@ -637,6 +663,7 @@ tick(); setInterval(tick, 1000);
 loadFlows();
 setTimeout(loadFlows, 600);
 loadSessions();
+if (localStorage.getItem("console.solo") === "1") $("#track").classList.add("solo");
 fetch("/api/models").then((r) => r.json()).then((d) => {
   window.__models = d.models || [];
   fillModels();
@@ -667,6 +694,11 @@ const COMMANDS = [
   { label: "go: archive", run: () => setOpen("archive") },
   { label: "go: berth", run: () => setOpen("berth") },
   { label: "go: procedures", run: () => setOpen("procedures") },
+  { label: "view: fullscreen bay", run: () => {
+      const track = document.getElementById("track");
+      track.classList.toggle("solo");
+      localStorage.setItem("console.solo", track.classList.contains("solo") ? "1" : "0");
+    } },
   { label: "engine: start swift 120k", run: () => api("/api/engine?key=1&action=start") },
   { label: "engine: start coder strata", run: () => api("/api/engine?key=2&action=start") },
   { label: "engine: start swift 64k", run: () => api("/api/engine?key=3&action=start") },

@@ -319,3 +319,15 @@ main.stage::after { content: ""; position: absolute; inset: 0; pointer-events: n
   font: inherit; font-size: 10px; letter-spacing: 0; text-transform: none;
   color: var(--amber); background: #0b0b0e; border: 1px solid #2a1d08; border-radius: 3px; }
 .side-model select:focus { outline: none; border-color: var(--amber); }
+
+/* every bay gets the same draggable split, not just the terminal */
+.baycard .inside { grid-template-columns: var(--split, .92fr) 8px 1.08fr; }
+.vsplit { cursor: col-resize; position: relative; }
+.vsplit::before { content: ""; position: absolute; top: 10px; bottom: 10px; left: 3px;
+  width: 2px; background: #2a1d08; }
+.vsplit:hover::before, .vsplit:active::before { background: var(--amber);
+  box-shadow: 0 0 8px rgba(255, 176, 0, .45); }
+
+/* solo: the open bay takes the whole stage, spine cards step aside */
+.track.solo .baycard:not(.open) { display: none; }
+.track.solo .baycard.open { flex: 1 1 100%; }
