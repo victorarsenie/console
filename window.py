@@ -178,6 +178,28 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as exc:
                 self._json({"error": str(exc)}, 500)
             return
+        if path == "/api/chat/send":
+            query = parse_qs(urlparse(self.path).query)
+            sid = (query.get("session") or [""])[0]
+            text = (query.get("text") or [""])[0].strip()
+            if not text:
+                self._json({"ok": False, "message": "empty prompt"}, 400)
+                return
+            import json as _json
+            import subprocess as _sp
+            try:
+                res = _sp.run([str(OPENCODE_EXE), "api", "POST",
+                               f"/api/session/{sid}/prompt",
+                               "-d", _json.dumps({"text": text})],
+                              capture_output=True, text=True, encoding="utf-8",
+                              errors="replace", timeout=120,
+                              creationflags=0x08000000)
+                ok = res.returncode == 0
+                msg = (res.stdout or res.stderr or "").strip().splitlines()[0][:160] if (res.stdout or res.stderr) else ""
+            except Exception as exc:
+                ok, msg = False, str(exc)
+            self._json({"ok": ok, "message": msg})
+            return
         if path == "/api/chat":
             sid = (parse_qs(urlparse(self.path).query).get("session") or [""])[0]
             self._json({"session": sid, "messages": transcript(sid)})

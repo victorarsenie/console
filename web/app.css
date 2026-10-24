@@ -246,3 +246,17 @@ main.stage::after { content: ""; position: absolute; inset: 0; pointer-events: n
 @keyframes crtflicker { 0%,100% { opacity: 1 } 47% { opacity: .985 } 48% { opacity: .955 } 49% { opacity: .99 } }
 .theatre, .track { animation: crtflicker 9s infinite steps(1, end); }
 @media (prefers-reduced-motion: reduce) { .theatre, .track { animation: none } }
+
+/* CRT terminal */
+.term { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.term-head { display: flex; justify-content: space-between; align-items: center;
+  font-size: 10px; letter-spacing: .2em; color: var(--dim); margin-bottom: 8px; }
+.term-log { flex: 1; overflow: auto; min-height: 0; padding-right: 6px; }
+.term-log .msg { margin-bottom: 10px; }
+.term-log .who { font-size: 9px; letter-spacing: .28em; color: var(--dim); margin-bottom: 3px; }
+.term-log .msg.user .who { color: var(--amber); }
+.term-log .line { font-size: 12px; line-height: 1.6; color: var(--soft); white-space: pre-wrap; }
+.term-input { display: flex; align-items: center; gap: 8px; border-top: 1px solid #241906; padding-top: 10px; margin-top: 10px; }
+.prompt-caret { color: var(--amber); }
+.term-input input { flex: 1; font: inherit; font-size: 13px; color: var(--soft); background: transparent;
+  border: 0; outline: none; }

@@ -33,6 +33,8 @@ const BAYS = [
     number: (s) => fmt(totalNotes(s)), unit: () => "notes", render: renderArchive },
   { id: "berth", label: "berth", glyph: "B", note: "projects and cards",
     number: (s) => `${s.projects.length}`, unit: () => "projects", render: renderBerth },
+  { id: "terminal", label: "terminal", glyph: "C", note: "opencode conversation",
+    number: () => `${chat.length}`, unit: () => "messages", render: renderTerminal },
   { id: "sessions", label: "sessions", glyph: "K", note: "opencode sessions",
     number: () => `${(window.__sessions || []).length}`, unit: () => "recent",
     render: renderSessions },
@@ -165,7 +167,7 @@ function renderProcedures(s) {
 function renderSessions() {
   const rows = window.__sessions || [];
   if (!rows.length) return `<div class="row dim">no sessions, or the service is down</div>`;
-  return rows.slice(0, 12).map((s) => `<div class="panel">
+  return rows.slice(0, 12).map((s) => `<div class="panel" data-session="${esc(s.id)}" style="cursor:pointer">
       <h3>${esc(s.title).slice(0, 58)}</h3>
       <div class="row dim">${esc(s.dir)}</div>
       <div class="row dim">${esc(s.model)} - ${esc(s.outcome)} - ${s.cost} usd</div>
@@ -190,6 +192,66 @@ function openBay(id) {
     card.querySelectorAll(".spine").forEach((el) => (el.style.display = isOpen ? "none" : ""));
     card.querySelectorAll(".inside").forEach((el) => (el.style.display = isOpen ? "grid" : "none"));
   });
+}
+
+let activeSession = "";
+let chat = [];
+
+function renderTerminal() {
+  const rows = chat.slice(-40).map((m) => {
+    const who = m.role === "user" ? "you" : m.role === "assistant" ? "mu/th/ur" : m.role;
+    const body = (m.parts || []).map((p) => {
+      if (p.kind === "text") return `<div class="line">${esc(p.text)}</div>`;
+      if (p.kind === "reasoning") return `<div class="line dim">thinking... ${esc((p.text || "").slice(0, 90))}</div>`;
+      return `<div class="line dim">[${esc(p.text)}${p.status ? " " + esc(p.status) : ""}]</div>`;
+    }).join("");
+    return `<div class="msg ${m.role}"><div class="who">${who}</div>${body || '<div class="line dim">...</div>'}</div>`;
+  }).join("");
+  return `<div class="term">
+      <div class="term-head">${activeSession ? esc(activeSession) : "no session selected - pick one in sessions"}
+        <button data-act="chat-refresh">refresh</button></div>
+      <div class="term-log" id="chatlog">${rows || '<div class="row dim">empty</div>'}</div>
+      <form class="term-input" id="chat-form">
+        <span class="prompt-caret">&gt;</span>
+        <input id="chat-text" placeholder="type a prompt, enter to send" autocomplete="off">
+        <button type="submit">send</button>
+      </form>
+    </div>`;
+}
+
+async function loadChat() {
+  if (!activeSession) {
+    const first = (window.__sessions || [])[0];
+    if (!first) return;
+    activeSession = first.id;
+  }
+  try {
+    const res = await fetch(`/api/chat?session=${activeSession}`, { cache: "no-store" });
+    const data = await res.json();
+    chat = data.messages || [];
+    const log = document.getElementById("chatlog");
+    if (log) {
+      log.innerHTML = chat.slice(-40).map((m) => {
+        const who = m.role === "user" ? "you" : m.role === "assistant" ? "mu/th/ur" : m.role;
+        const body = (m.parts || []).map((p) => {
+          if (p.kind === "text") return `<div class="line">${esc(p.text)}</div>`;
+          if (p.kind === "reasoning") return `<div class="line dim">thinking... ${esc((p.text || "").slice(0, 90))}</div>`;
+          return `<div class="line dim">[${esc(p.text)}]</div>`;
+        }).join("");
+        return `<div class="msg ${m.role}"><div class="who">${who}</div>${body || '<div class="line dim">...</div>'}</div>`;
+      }).join("") || '<div class="row dim">empty</div>';
+      log.scrollTop = log.scrollHeight;
+    }
+  } catch (err) { /* leave the last good transcript */ }
+}
+
+async function sendPrompt(text) {
+  if (!activeSession) return toast("select a session first", true);
+  const res = await fetch(`/api/chat/send?session=${activeSession}&text=${encodeURIComponent(text)}`, { method: "POST" });
+  const data = await res.json();
+  toast(data.ok ? "sent" : (data.message || "send failed"), !data.ok);
+  setTimeout(loadChat, 1200);
+  setTimeout(loadChat, 4000);
 }
 
 function renderShell() {
@@ -295,6 +357,9 @@ document.addEventListener("click", (event) => {
   // keep a selection alive: a click must not clear what the user highlighted
   if (String(window.getSelection() || "").length > 0) return;
   if (event.target.closest("[data-act='clear-filter']")) { projectFilter = ""; render(); return; }
+  const sessRow = event.target.closest("[data-session]");
+  if (sessRow) { activeSession = sessRow.dataset.session; chat = []; openBay("terminal"); loadChat(); return; }
+  if (event.target.closest("[data-act='chat-refresh']")) { loadChat(); return; }
   const projRow = event.target.closest("[data-proj]");
   if (projRow) { projectFilter = projRow.dataset.proj; open = "procedures"; render(); return; }
   const capBtn = event.target.closest("[data-act='capture-card'], [data-act='capture-note']");
@@ -356,7 +421,7 @@ document.addEventListener("keydown", (event) => {
     return;
   }
   const index = BAYS.findIndex((b) => b.id === open);
-  if (/^[1-6]$/.test(event.key)) { openBay(BAYS[Number(event.key) - 1].id); }
+  if (/^[1-7]$/.test(event.key)) { openBay(BAYS[Number(event.key) - 1].id); }
   else if (event.key === "ArrowRight") { openBay(BAYS[Math.min(BAYS.length - 1, index + 1)].id); }
   else if (event.key === "ArrowLeft") { openBay(BAYS[Math.max(0, index - 1)].id); }
   else if (event.key.toLowerCase() === "r") poll();
@@ -436,6 +501,7 @@ loadFlows();
 setTimeout(loadFlows, 600);
 loadSessions();
 setInterval(loadSessions, 20000);
+setInterval(() => { if (open === "terminal") loadChat(); }, 3000);
 poll(); setInterval(poll, 3000);
 
 $("#prev").addEventListener("click", () => step(-1));
