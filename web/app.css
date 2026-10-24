@@ -271,9 +271,25 @@ main.stage::after { content: ""; position: absolute; inset: 0; pointer-events: n
   background: repeating-linear-gradient(0deg, rgba(0,0,0,.42) 0 1px, transparent 1px 3px);
   mix-blend-mode: multiply; }
 .crt-term .term-log, .crt-term .term-head, .crt-term .term-input { position: relative; z-index: 3; }
-.crt-term .term-log { text-shadow: 0 0 6px rgba(255,176,0,.42); }
-.crt-term .line, .crt-term .who { text-transform: uppercase; letter-spacing: .04em; }
-.crt-term .line { color: #ffc247; }
+.crt-term .term-log { text-shadow: 0 0 6px rgba(255,176,0,.42); overflow-x: hidden; }
+.crt-term .term-log::-webkit-scrollbar { width: 6px; }
+.crt-term .term-log::-webkit-scrollbar-thumb { background: #2a1d08; }
+.crt-term .term-log::-webkit-scrollbar-track { background: transparent; }
+.crt-term .line, .crt-term .who { letter-spacing: .02em; }
+.crt-term .line { color: #ffc247; font-size: 12px; line-height: 1.55; }
+.crt-term .fold { margin: 2px 0 6px; }
+.crt-term .fold summary { cursor: pointer; list-style: none; font-size: 11px; color: #b98f35;
+  letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.crt-term .fold summary::-webkit-details-marker { display: none; }
+.crt-term .fold summary::before { content: "+ "; color: #8f6a1d; }
+.crt-term .fold[open] summary::before { content: "- "; }
+.crt-term .fold.think summary { color: #7f6428; font-style: italic; }
+.crt-term .fold pre { margin: 5px 0 0 14px; padding: 8px 10px; border-left: 1px solid #3a2a10;
+  background: #0a0906; color: #d9b166; font: 11px/1.55 ui-monospace, Consolas, monospace;
+  white-space: pre-wrap; word-break: break-word; max-height: 300px; overflow: auto;
+  text-transform: none; }
+.crt-term .chip { color: var(--amber); border: 1px solid #3a2a10; padding: 0 4px;
+  margin-right: 4px; font-size: 10px; }
 .crt-term .who { color: #8f6a1d; }
 .crt-term .msg.user .who { color: #ffd68a; }
 .crt-term .msg.user .line { color: #ffe9b8; }
@@ -344,6 +360,9 @@ main.stage::after { content: ""; position: absolute; inset: 0; pointer-events: n
 .baycard[data-bay=terminal] .visual .cap { display: none; }
 .baycard[data-bay=terminal] .visual .label { position: static; margin-bottom: 8px; }
 .side-list { flex: 1; overflow: auto; min-height: 0; }
+.side-list::-webkit-scrollbar { width: 6px; }
+.side-list::-webkit-scrollbar-thumb { background: #2a1d08; }
+.side-list::-webkit-scrollbar-track { background: transparent; }
 .baycard[data-bay=terminal] .copy { display: flex; flex-direction: column; min-height: 0;
   padding: 16px 18px; overflow: hidden; }
 .crt-term { flex: 1; min-height: 0; }

@@ -252,6 +252,15 @@ window.__sendPrompt = function () {
 
 let lastLogHtml = "";
 
+function argLabel(p) {
+  try {
+    const o = JSON.parse(p.args || "{}");
+    return String(o.command || o.path || o.filePath || o.pattern || o.query || p.args || "");
+  } catch (err) {
+    return String(p.args || "");
+  }
+}
+
 function transcriptHtml(messages) {
   return (messages || [])
     .filter((m) => m.role !== "idle" && m.role !== "synthetic")
@@ -259,15 +268,21 @@ function transcriptHtml(messages) {
       const who = m.role === "user" ? "you" : m.role === "assistant" ? "mu/th/ur" : m.role;
       const seen = new Set();
       const body = (m.parts || []).filter((p) => {
-        const key = `${p.kind}|${p.text}`;
+        const key = p.key || `${p.kind}|${p.text}`;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
-      }).map((p) => {
+      }).map((p, i) => {
+        const key = esc(p.key || `${m.id || ""}-${i}`);
         if (p.kind === "text") return `<div class="line">${esc(p.text)}</div>`;
         if (p.kind === "error") return `<div class="line bad">${esc(p.text)}</div>`;
-        if (p.kind === "reasoning") return `<div class="line dim">thinking... ${esc((p.text || "").slice(0, 90))}</div>`;
-        return `<div class="line dim">[${esc(p.text)}]</div>`;
+        if (p.kind === "reasoning") {
+          return `<details class="fold think" data-key="r${key}"><summary>thinking</summary><pre>${esc(p.text || "")}</pre></details>`;
+        }
+        const args = argLabel(p);
+        const body = [p.args ? "input: " + p.args : "", p.out ? "output: " + p.out : ""]
+          .filter(Boolean).join("\n\n") || "no payload";
+        return `<details class="fold tool" data-key="t${key}"><summary><span class="chip">${esc(p.text)}</span> ${esc(p.status || "")} ${esc(args)}</summary><pre>${esc(body)}</pre></details>`;
       }).join("");
       return body ? `<div class="msg ${m.role}"><div class="who">${who}</div>${body}</div>` : "";
     }).join("");
@@ -296,6 +311,9 @@ async function loadChat() {
         const stick = log.scrollHeight - log.scrollTop - log.clientHeight < 60;
         log.innerHTML = html;
         lastLogHtml = html;
+        log.querySelectorAll("details.fold").forEach((d) => {
+          if (openFolds.has(d.dataset.key)) d.open = true;
+        });
         if (stick) log.scrollTop = log.scrollHeight;
       }
     }
@@ -497,6 +515,15 @@ document.addEventListener("click", (event) => {
     if (query) search(query);
   }
 });
+
+const openFolds = new Set();
+
+document.addEventListener("toggle", (event) => {
+  const d = event.target;
+  if (!d || !d.classList || !d.classList.contains("fold")) return;
+  if (d.open) openFolds.add(d.dataset.key);
+  else openFolds.delete(d.dataset.key);
+}, true);
 
 document.addEventListener("change", (event) => {
   if (event.target && event.target.id === "model-pick") {

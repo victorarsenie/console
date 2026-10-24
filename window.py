@@ -159,9 +159,14 @@ def transcript(session_id: str, limit: int = 60) -> list[dict]:
             elif kind == "reasoning":
                 parts.append({"kind": "reasoning", "text": part.get("text", "")})
             elif kind in ("tool", "tool-call", "tool_call"):
+                st = part.get("state") or {}
+                args = st.get("input") or {}
                 parts.append({"kind": "tool",
-                              "text": part.get("tool") or part.get("name") or "tool",
-                              "status": part.get("state", {}).get("status", "")})
+                              "text": part.get("name") or part.get("tool") or "tool",
+                              "status": st.get("status", ""),
+                              "key": part.get("id", ""),
+                              "args": json.dumps(args, ensure_ascii=False)[:600] if args else "",
+                              "out": str(st.get("output") or "")[:1500]})
         if not parts and message.get("error"):
             parts.append({"kind": "error", "text": str(message["error"])[:400]})
         out.append({"id": message.get("id", ""), "role": message.get("type", ""),
