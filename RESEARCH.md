@@ -1,4 +1,4 @@
-# Console â€” research log
+# Muther research log
 
 One log for Muther: the assistant and its interface (`E:\AI\console`). Findings kept
 because most of them cost a session each.
