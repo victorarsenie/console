@@ -207,15 +207,15 @@ function renderTerminal() {
     }).join("");
     return `<div class="msg ${m.role}"><div class="who">${who}</div>${body || '<div class="line dim">...</div>'}</div>`;
   }).join("");
-  return `<div class="term">
+  return `<div class="crt-term">
       <div class="term-head">${activeSession ? esc(activeSession) : "no session selected - pick one in sessions"}
         <button data-act="chat-refresh">refresh</button></div>
       <div class="term-log" id="chatlog">${rows || '<div class="row dim">empty</div>'}</div>
-      <form class="term-input" id="chat-form">
+      <div class="term-input">
         <span class="prompt-caret">&gt;</span>
         <input id="chat-text" placeholder="type a prompt, enter to send" autocomplete="off">
-        <button type="submit">send</button>
-      </form>
+        <button data-act="chat-send">send</button>
+      </div>
     </div>`;
 }
 
@@ -357,6 +357,12 @@ document.addEventListener("click", (event) => {
   // keep a selection alive: a click must not clear what the user highlighted
   if (String(window.getSelection() || "").length > 0) return;
   if (event.target.closest("[data-act='clear-filter']")) { projectFilter = ""; render(); return; }
+  if (event.target.closest("[data-act='chat-send']")) {
+    const input = document.getElementById("chat-text");
+    const text = input && input.value.trim();
+    if (text) { input.value = ""; sendPrompt(text); }
+    return;
+  }
   const sessRow = event.target.closest("[data-session]");
   if (sessRow) { activeSession = sessRow.dataset.session; chat = []; openBay("terminal"); loadChat(); return; }
   if (event.target.closest("[data-act='chat-refresh']")) { loadChat(); return; }
