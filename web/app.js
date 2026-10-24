@@ -188,22 +188,9 @@ async function loadSessions() {
 function openBay(id) {
   if (id !== open) cue.bay();
   open = id;
-  if (id === "terminal") {
-    render();
-    loadChat();
-    return;
-  }
-  const track = document.getElementById("track");
-  if (track && track.classList.contains("console-mode")) {
-    track.classList.remove("console-mode");
-    render();
-  }
-  document.querySelectorAll(".baycard").forEach((card) => {
-    const isOpen = card.dataset.bay === id;
-    card.classList.toggle("open", isOpen);
-    card.querySelectorAll(".spine").forEach((el) => (el.style.display = isOpen ? "none" : ""));
-    card.querySelectorAll(".inside").forEach((el) => (el.style.display = isOpen ? "grid" : "none"));
-  });
+  lastLogHtml = "";
+  render();
+  if (id === "terminal") { fillModels(); loadChat(); }
 }
 
 let activeSession = "";
@@ -236,16 +223,7 @@ function fillModels() {
 }
 
 function renderTerminal() {
-  const split = localStorage.getItem("console.split") || "340";
-  return `<div class="console" id="console" style="--split:${split}px">
-    <aside class="sess-pane">
-      <div class="side-head">sessions <button data-act="session-new">+ new</button></div>
-      <div class="side-list" id="sess-list">${sessionRows()}</div>
-      <div class="side-model">model<span id="sess-model">${esc(modelOf() || "no model")}</span>
-        <select id="model-pick" title="model for a new session"></select></div>
-    </aside>
-    <div class="gutter" id="gutter"></div>
-    <section class="crt-term">
+  return `<section class="crt-term">
       <div class="term-head"><span id="term-meta">${activeSession ? esc(activeSession) : "no session"}</span><span class="dim" id="term-model">${esc(modelOf())}</span></div>
       <div class="term-log" id="chatlog"></div>
       <div class="term-input">
@@ -253,8 +231,14 @@ function renderTerminal() {
         <input id="chat-text" placeholder="type a prompt, enter to send" autocomplete="off">
         <button data-act="chat-send">send</button>
       </div>
-    </section>
-  </div>`;
+    </section>`;
+}
+
+function renderSessionPane() {
+  return `<div class="side-head">sessions <button data-act="session-new">+ new</button></div>
+    <div class="side-list" id="sess-list">${sessionRows()}</div>
+    <div class="side-model">model<span id="sess-model">${esc(modelOf() || "no model")}</span>
+      <select id="model-pick" title="model for a new session"></select></div>`;
 }
 
 window.__sendPrompt = function () {
@@ -330,16 +314,13 @@ async function sendPrompt(text) {
   setTimeout(loadChat, 4000);
 }
 
+function splitOf(id) {
+  const v = localStorage.getItem("console.split." + id);
+  return v ? `--split:${v}px` : "";
+}
+
 function renderShell() {
   const track = $("#track");
-  if (open === "terminal") {
-    track.classList.add("console-mode");
-    track.innerHTML = renderTerminal();
-    lastLogHtml = "";
-    fillModels();
-    return;
-  }
-  track.classList.remove("console-mode");
   const openIndex = BAYS.findIndex((b) => b.id === open);
   const spine = (bay, index) => `
     <article class="baycard" data-bay="${bay.id}">
@@ -349,13 +330,14 @@ function renderShell() {
         <div class="vmono">${bay.glyph}</div>
         <div class="vnum">${String(bay.number(state)).slice(0, 7)}</div>
       </div>
-      <div class="inside" style="display:none">
+      <div class="inside" style="display:none;${splitOf(bay.id)}">
         <div class="visual">
           <div class="label">${bay.label}</div>
           <div class="glyph">${bay.glyph}</div>
           <div class="huge mid">${bay.number(state)}</div>
           <div class="cap">${bay.unit(state) || bay.note}</div>
         </div>
+        <div class="vsplit" title="drag to resize"></div>
         <div class="copy">${(bay.render || (() => ""))(state)}</div>
       </div>
     </article>`;
@@ -367,7 +349,7 @@ function renderShell() {
     const isOpen = bay.id === open;
     return `<article class="baycard ${isOpen ? "open" : ""}" data-bay="${bay.id}">
       <div class="atm"></div>
-      <div class="inside" style="display:${isOpen ? "grid" : "none"}">
+      <div class="inside" style="display:${isOpen ? "grid" : "none"};${splitOf(bay.id)}">
         <div class="visual">
           <div class="label">${bay.label}</div>
           <div class="glyph">${bay.glyph}</div>
@@ -386,6 +368,7 @@ function renderShell() {
 }
 
 function bayVisual(id, s) {
+  if (id === "terminal") return renderSessionPane();
   if (id === "telemetry") return `<div class="vgraf">${spark(hist)}<div class="cap">vram free, rolling</div></div>`;
   if (id === "archive") {
     const rows = s.knowledge.domains || [];
@@ -414,7 +397,7 @@ function render() {
   if (!state) return;
   lastRender = Date.now();
   if (String(window.getSelection() || "").length > 0) return;
-  if (open === "terminal" && $("#track").classList.contains("console-mode")) return;
+  if (open === "terminal" && document.querySelector('.baycard.open[data-bay="terminal"]')) return;
   renderShell();
   updateLive();
   $("#dot").className = "dot" + (state.alerts.length ? " bad" : "");
@@ -531,6 +514,8 @@ document.addEventListener("mousedown", (event) => {
     const rect = box.getBoundingClientRect();
     const px = Math.max(200, Math.min(rect.width - 260, ev.clientX - rect.left));
     box.style.setProperty("--split", px + "px");
+    const card = box.closest(".baycard");
+    if (card) localStorage.setItem("console.split." + card.dataset.bay, String(Math.round(px)));
   };
   const up = () => {
     document.removeEventListener("mousemove", move);

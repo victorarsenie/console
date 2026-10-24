@@ -282,7 +282,9 @@ main.stage::after { content: ""; position: absolute; inset: 0; pointer-events: n
   text-shadow: 0 0 6px rgba(255,176,0,.4); }
 .crt-term .prompt-caret::after { content: "_"; margin-left: 2px; animation: caret 1s steps(1) infinite; }
 @keyframes caret { 50% { opacity: 0; } }
-.crt-term .term-head { color: #8f6a1d; border-bottom: 1px solid #2a1d08; padding-bottom: 6px; }
+.crt-term .term-head { color: #8f6a1d; border-bottom: 1px solid #2a1d08; padding-bottom: 6px;
+  gap: 10px; flex-wrap: nowrap; }
+.crt-term .term-head span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* terminal: sessions sidebar + screen */
 .term-wrap { display: grid; grid-template-columns: 210px 1fr; gap: 12px; height: 100%; min-height: 0; }
@@ -329,5 +331,19 @@ main.stage::after { content: ""; position: absolute; inset: 0; pointer-events: n
   box-shadow: 0 0 8px rgba(255, 176, 0, .45); }
 
 /* solo: the open bay takes the whole stage, spine cards step aside */
+.track.solo { align-items: stretch; }
 .track.solo .baycard:not(.open) { display: none; }
-.track.solo .baycard.open { flex: 1 1 100%; }
+.track.solo .baycard.open { flex: 1 1 100%; height: 100%; max-height: none; }
+.track.solo .baycard.open .inside { height: 100%; }
+
+/* terminal is a normal bay: sessions in the visual column, screen in the copy */
+.baycard[data-bay=terminal] .visual { display: flex; flex-direction: column; min-height: 0;
+  padding: 16px 14px; }
+.baycard[data-bay=terminal] .visual .huge,
+.baycard[data-bay=terminal] .visual .glyph,
+.baycard[data-bay=terminal] .visual .cap { display: none; }
+.baycard[data-bay=terminal] .visual .label { position: static; margin-bottom: 8px; }
+.side-list { flex: 1; overflow: auto; min-height: 0; }
+.baycard[data-bay=terminal] .copy { display: flex; flex-direction: column; min-height: 0;
+  padding: 16px 18px; overflow: hidden; }
+.crt-term { flex: 1; min-height: 0; }
