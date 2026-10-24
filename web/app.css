@@ -294,7 +294,7 @@ main.stage::after { content: ""; position: absolute; inset: 0; pointer-events: n
 .crt-term .msg.user .who { color: #ffd68a; }
 .crt-term .msg.user .line { color: #ffe9b8; }
 .crt-term .term-input { border-top: 1px solid #3a2a10; }
-.crt-term #chat-text { text-transform: uppercase; letter-spacing: .05em; color: #ffd68a;
+.crt-term #chat-text { letter-spacing: .02em; color: #ffd68a;
   text-shadow: 0 0 6px rgba(255,176,0,.4); }
 .crt-term .prompt-caret::after { content: "_"; margin-left: 2px; animation: caret 1s steps(1) infinite; }
 @keyframes caret { 50% { opacity: 0; } }

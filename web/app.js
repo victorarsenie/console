@@ -290,6 +290,7 @@ function transcriptHtml(messages) {
 
 const typedLen = new Map();
 let typeTimer = null;
+let lastThinkAt = 0;
 
 function typeLast(log) {
   const lines = log.querySelectorAll(".line");
@@ -307,6 +308,7 @@ function typeLast(log) {
     shown = Math.min(full.length, shown + 2);
     el.textContent = full.slice(0, shown);
     typedLen.set(key, shown);
+    if (shown % 6 === 0) cue.type();
     const near = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
     if (near) log.scrollTop = log.scrollHeight;
     if (shown >= full.length) { clearInterval(typeTimer); typeTimer = null; }
@@ -330,6 +332,12 @@ async function loadChat() {
     const data = await res.json();
     chat = data.messages || [];
     const log = document.getElementById("chatlog");
+    const lastMsg = chat[chat.length - 1];
+    const lastPart = lastMsg && (lastMsg.parts || [])[(lastMsg.parts || []).length - 1];
+    if (lastPart && lastPart.kind === "reasoning" && Date.now() - lastThinkAt > 1100) {
+      lastThinkAt = Date.now();
+      cue.think();
+    }
     if (log) {
       const html = transcriptHtml(chat) || '<div class="row dim">no messages yet - type below</div>';
       if (html !== lastLogHtml) {

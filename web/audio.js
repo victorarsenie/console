@@ -50,6 +50,10 @@ export const cue = {
   boot: () => {
     for (let i = 0; i < 7; i++) setTimeout(() => blip(600 + i * 90, 35, "square", 0.05), i * 110);
   },
+  // typewriter: a dry mechanical tick, quieter than a keystroke
+  type: () => blip(1500 + Math.random() * 500, 7, "square", 0.018),
+  // thinking: the machine's slow pulse while it reasons
+  think: () => blip(180 + Math.random() * 30, 90, "sine", 0.03),
 };
 
 export function start() {
