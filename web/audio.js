@@ -86,7 +86,7 @@ export const cue = {
     swell.connect(lp).connect(g).connect(master);
     swell.start();
     swell.stop(ctx.currentTime + 1.9);
-    [55, 66, 82, 110].forEach((f, i) => {
+    [48, 60, 72, 90].forEach((f, i) => {
       setTimeout(() => {
         blip(f, 420, "sawtooth", 0.08);
         tick(300 + i * 120, 120, 0.04, 2);
@@ -94,12 +94,13 @@ export const cue = {
     });
   },
   // typewriter: a dry mechanical tick, quieter than a keystroke
-  type: () => tick(1800 + Math.random() * 900, 14, 0.06, 8),
+  type: () => tick(1250 + Math.random() * 400, 18, 0.06, 1.4),
   // standby: the machine's slow sonar while it works - low ping, faint echo
   think: () => {
-    blip(58, 320, "sawtooth", 0.075);
-    blip(87, 260, "triangle", 0.03);
-    tick(420, 90, 0.035, 3);
+    blip(72, 380, "sawtooth", 0.075);
+    blip(146, 320, "triangle", 0.035);
+    blip(220, 260, "sine", 0.018);
+    tick(360, 140, 0.03, 1.2);
   },
 };
 
