@@ -290,7 +290,7 @@ function transcriptHtml(messages) {
 
 const typedLen = new Map();
 let typeTimer = null;
-let isThinking = false;
+let isBusy = false;
 let activeUntil = 0;
 let loadingChat = false;
 
@@ -341,8 +341,10 @@ async function loadChat() {
     const lastPart = parts[parts.length - 1];
     const thinking = !!lastPart && lastPart.kind === "reasoning"
       && lastMsg.role === "assistant";
-    if (thinking && !isThinking) cue.think();
-    isThinking = thinking;
+    const running = parts.some((p) => p.kind === "tool" && p.status === "running");
+    const busy = thinking || running || Date.now() < activeUntil;
+    if (busy && !isBusy) cue.think();
+    isBusy = busy;
     if (log) {
       const html = transcriptHtml(chat) || '<div class="row dim">no messages yet - type below</div>';
       if (html !== lastLogHtml) {
@@ -696,6 +698,8 @@ function typeBoot() {
     "OPENCODE ............ LINKED",
   ];
   box.innerHTML = '<div class="boot-inner"></div>';
+  startAudio();
+  cue.boot();
   const inner = box.querySelector(".boot-inner");
   let line = 0, char = 0, node = null;
   function step() {
@@ -725,7 +729,7 @@ fetch("/api/models").then((r) => r.json()).then((d) => {
 setInterval(loadSessions, 20000);
 setInterval(() => { if (open === "terminal") loadChat(); }, 3000);
 setInterval(() => { if (open === "terminal" && Date.now() < activeUntil) loadChat(); }, 1200);
-setInterval(() => { if (isThinking && open === "terminal") cue.think(); }, 1200);
+setInterval(() => { if (isBusy && open === "terminal") cue.think(); }, 1200);
 poll(); setInterval(poll, 3000);
 
 $("#prev").addEventListener("click", () => step(-1));

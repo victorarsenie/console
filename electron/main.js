@@ -69,6 +69,7 @@ app.whenReady().then(async () => {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
+      autoplayPolicy: "no-user-gesture-required",
     },
   });
 
