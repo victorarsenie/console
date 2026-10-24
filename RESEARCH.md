@@ -61,3 +61,17 @@ its binary; `node node_modules/electron/install.js` fixes it.
 - Sub-tabs inside bays: the refactor broke the page once (BAYS referenced deleted
   render functions). Add the new functions beside the old ones, switch references in
   the same edit, and assert the page still renders before committing.
+
+## OpenCode session API (2026-10-24)
+
+- The service authenticates; every direct `/api*` request returns **401**. Guessing
+  header styles (Bearer, Basic ":"+password, x-opencode-password, x-api-key) all fail.
+  `service.json` holds only a `password` field, and it is not the API credential.
+- **The supported path works:** `opencode api GET /api/session` returns the session
+  list as JSON - id, title, model, tokens, cost, outcome, `location.directory`. The CLI
+  authenticates itself, so the console never handles the secret.
+- `/api/sessions` is 404; the plural is wrong. `/api/session` is the collection.
+- Anything that is not an API path returns the SPA HTML with 200, so a `200` alone
+  proves nothing; check the content type.
+- GUI rule that keeps biting: a bay renderer wired with `bay.render` throws when the
+  BAYS entry has no `render` key, and the whole page goes blank (42 KB screenshot).

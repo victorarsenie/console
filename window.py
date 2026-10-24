@@ -89,6 +89,40 @@ def open_path(raw: str, dry: bool = False) -> tuple[bool, str]:
         return False, str(exc)
 
 
+_sessions_cache = {"at": 0.0, "data": []}
+
+
+def sessions() -> list[dict]:
+    """OpenCode sessions via its own CLI; no credential handled here. Cached 15 s."""
+    import json
+    import subprocess
+    import time
+
+    if time.time() - _sessions_cache["at"] < 15:
+        return _sessions_cache["data"]
+    rows = []
+    try:
+        res = subprocess.run(["opencode", "api", "GET", "/api/session"],
+                             capture_output=True, text=True, timeout=30,
+                             creationflags=0x08000000)
+        payload = json.loads(res.stdout or "{}")
+        for item in payload.get("data", []):
+            rows.append({
+                "id": item.get("id", ""),
+                "title": item.get("title") or "(untitled)",
+                "dir": (item.get("location") or {}).get("directory", ""),
+                "model": (item.get("model") or {}).get("id", ""),
+                "cost": round(float(item.get("cost") or 0), 3),
+                "outcome": item.get("outcome", ""),
+                "updated": (item.get("time") or {}).get("updated", 0),
+            })
+    except Exception:
+        rows = []
+    rows.sort(key=lambda r: r["updated"], reverse=True)
+    _sessions_cache.update(at=time.time(), data=rows[:40])
+    return _sessions_cache["data"]
+
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code: int, body: bytes, ctype: str) -> None:
         self.send_response(code)
@@ -108,6 +142,9 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(collector.collect())
             except Exception as exc:
                 self._json({"error": str(exc)}, 500)
+            return
+        if path == "/api/sessions":
+            self._json({"sessions": sessions()})
             return
         if path == "/api/workflows":
             import workflows
