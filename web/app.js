@@ -284,8 +284,33 @@ function transcriptHtml(messages) {
           .filter(Boolean).join("\n\n") || "no payload";
         return `<details class="fold tool" data-key="t${key}"><summary><span class="chip">${esc(p.text)}</span> ${esc(p.status || "")} ${esc(args)}</summary><pre>${esc(body)}</pre></details>`;
       }).join("");
-      return body ? `<div class="msg ${m.role}"><div class="who">${who}</div>${body}</div>` : "";
+      return body ? `<div class="msg ${m.role}" data-id="${esc(m.id || "")}"><div class="who">${who}</div>${body}</div>` : "";
     }).join("");
+}
+
+const typedLen = new Map();
+let typeTimer = null;
+
+function typeLast(log) {
+  const lines = log.querySelectorAll(".line");
+  if (!lines.length) return;
+  const el = lines[lines.length - 1];
+  const msg = el.closest(".msg");
+  const idx = msg ? [...msg.querySelectorAll(".line")].indexOf(el) : 0;
+  const full = el.textContent;
+  const key = (msg ? msg.dataset.id : "") + "#" + idx;
+  let shown = typedLen.get(key) || 0;
+  if (shown >= full.length) return;
+  if (typeTimer) clearInterval(typeTimer);
+  el.textContent = full.slice(0, shown);
+  typeTimer = setInterval(() => {
+    shown = Math.min(full.length, shown + 2);
+    el.textContent = full.slice(0, shown);
+    typedLen.set(key, shown);
+    const near = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
+    if (near) log.scrollTop = log.scrollHeight;
+    if (shown >= full.length) { clearInterval(typeTimer); typeTimer = null; }
+  }, 18);
 }
 
 async function loadChat() {
@@ -315,6 +340,7 @@ async function loadChat() {
           if (openFolds.has(d.dataset.key)) d.open = true;
         });
         if (stick) log.scrollTop = log.scrollHeight;
+        typeLast(log);
       }
     }
   } catch (err) {
