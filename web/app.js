@@ -1,5 +1,5 @@
 // Console theatre: five bays, one in focus. Same API, different shape.
-import { cue, start as startAudio, setMuted, isMuted } from "/audio.js";
+import { cue, start as startAudio, bootCue, audioState, setMuted, isMuted } from "/audio.js";
 
 const $ = (sel) => document.querySelector(sel);
 const fmt = (n) => (n ?? 0).toLocaleString();
@@ -387,6 +387,7 @@ function renderShell() {
   const spine = (bay, index) => `
     <article class="baycard" data-bay="${bay.id}">
       <div class="atm"></div>
+      <button class="solo-btn" data-act="solo" data-bay="${bay.id}" title="fullscreen">[ ]</button>
       <div class="spine">
         <div class="vlabel">${bay.label}</div>
         <div class="vmono">${bay.glyph}</div>
@@ -410,6 +411,7 @@ function renderShell() {
     const size = !numeric || String(number).length > 7 ? " mid" : "";
     const isOpen = bay.id === open;
     return `<article class="baycard ${isOpen ? "open" : ""}" data-bay="${bay.id}">
+      <button class="solo-btn" data-act="solo" data-bay="${bay.id}" title="fullscreen">[ ]</button>
       <div class="atm"></div>
       <div class="inside" style="display:${isOpen ? "grid" : "none"};${splitOf(bay.id)}">
         <div class="visual">
@@ -493,6 +495,13 @@ document.addEventListener("click", (event) => {
     const input = document.getElementById("chat-text");
     const text = input && input.value.trim();
     if (text) { input.value = ""; sendPrompt(text); }
+    return;
+  }
+  const soloBtn = event.target.closest("[data-act='solo']");
+  if (soloBtn) {
+    const track = document.getElementById("track");
+    if (track.classList.contains("solo") && open === soloBtn.dataset.bay) track.classList.remove("solo");
+    else { openBay(soloBtn.dataset.bay); track.classList.add("solo"); }
     return;
   }
   if (event.target.closest("[data-act='session-new']")) {
@@ -696,21 +705,35 @@ function typeBoot() {
     "WORK BOARD .......... LOADED",
     "ENGINES ............. POLLING",
     "OPENCODE ............ LINKED",
+    "SESSION BUS ......... SYNCED",
+    "TELEMETRY .......... ONLINE",
   ];
   box.innerHTML = '<div class="boot-inner"></div>';
-  startAudio();
-  setTimeout(() => cue.boot(), 120);
+  try {
+    startAudio();
+    bootCue();
+  } catch (err) { /* audio must never block the boot */ }
+  {
+    const st = audioState();
+    lines.push(`AUDIO .............. ${st.muted ? "MUTED" : (st.state === "running" ? "ONLINE" : st.state.toUpperCase())}`);
+    setTimeout(() => {
+      const last = box.querySelector(".boot-line:last-child");
+      if (!last) return;
+      const now = audioState();
+      last.textContent = `AUDIO .............. ${now.muted ? "MUTED" : (now.state === "running" ? "ONLINE" : now.state.toUpperCase())}`;
+    }, 700);
+  }
   const inner = box.querySelector(".boot-inner");
   let line = 0, char = 0, node = null;
   function step() {
     if (line >= lines.length) {
-      setTimeout(() => { box.style.opacity = "0"; setTimeout(() => box.remove(), 500); }, 420);
+      setTimeout(() => { box.style.opacity = "0"; setTimeout(() => box.remove(), 600); }, 900);
       return;
     }
     if (!node) { node = document.createElement("div"); node.className = "boot-line" + (line ? " dim" : ""); inner.appendChild(node); }
     node.textContent = lines[line].slice(0, ++char);
-    if (char >= lines[line].length) { line++; char = 0; node = null; setTimeout(step, 120); }
-    else setTimeout(step, 14);
+    if (char >= lines[line].length) { line++; char = 0; node = null; setTimeout(step, 260); }
+    else setTimeout(step, 26);
     if (char === 1) cue.key();
   }
   step();
@@ -721,6 +744,7 @@ tick(); setInterval(tick, 1000);
 loadFlows();
 setTimeout(loadFlows, 600);
 loadSessions();
+typeBoot();
 fetch("/api/models").then((r) => r.json()).then((d) => {
   window.__models = d.models || [];
   fillModels();

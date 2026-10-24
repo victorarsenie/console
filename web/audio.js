@@ -11,13 +11,18 @@ let muted = localStorage.getItem(MUTE_KEY) === "1";
 
 function ensure() {
   if (ctx) return ctx;
-  const AC = window.AudioContext || window.webkitAudioContext;
-  if (!AC) return null;
-  ctx = new AC();
-  master = ctx.createGain();
-  master.gain.value = muted ? 0 : 0.22;
-  master.connect(ctx.destination);
-  return ctx;
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    ctx = new AC();
+    master = ctx.createGain();
+    master.gain.value = muted ? 0 : 0.22;
+    master.connect(ctx.destination);
+    return ctx;
+  } catch (err) {
+    ctx = null;
+    return null;
+  }
 }
 
 function noiseBuffer(seconds) {
@@ -69,6 +74,27 @@ export function start() {
     window.addEventListener("pointerdown", kick, { once: true });
     window.addEventListener("keydown", kick, { once: true });
   }
+}
+
+export function audioState() {
+  return { state: ctx ? ctx.state : "none", muted };
+}
+
+export function bootCue() {
+  if (!ensure()) return;
+  let fired = false;
+  const fire = () => {
+    if (fired) return;
+    fired = true;
+    setTimeout(() => cue.boot(), 150);
+  };
+  if (ctx.state === "running") { fire(); return; }
+  ctx.resume().catch(() => {});
+  let tries = 0;
+  const timer = setInterval(() => {
+    if (ctx && ctx.state === "running") { clearInterval(timer); fire(); }
+    else if (++tries > 30) clearInterval(timer);
+  }, 100);
 }
 
 export function setMuted(value) {
