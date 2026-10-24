@@ -126,3 +126,15 @@ Traps confirmed today:
 - User messages keep their text under payload.text, not in content[].
 - render() rebuilding the stage on every poll wipes a live transcript; skip the shell
   render while the console is mounted and update only #chatlog.
+
+### Two regressions after the split (same day)
+
+- The terminal tab looked dead. Every spine card eagerly renders its bay content, so a
+  hidden `#console` already existed inside the terminal card and the "already mounted"
+  guard in `render()` skipped the render on click. The guard now tests `console-mode`
+  on `#track`, not the presence of the id.
+- The drone was removed on request. `start()` no longer calls `startHum`, and the hum
+  builder is gone; key clicks, bay chirps, the alert and boot chatter remain.
+
+Verified in a real browser: click on the terminal spine -> `track console-mode`, 0
+cards, live transcript, gutter drag 220px -> 360px persisted, no console errors.

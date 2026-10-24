@@ -146,8 +146,12 @@ def transcript(session_id: str, limit: int = 60) -> list[dict]:
     for message in rows[-limit:]:
         parts = []
         payload = message.get("payload") or {}
-        if message.get("type") == "user" and isinstance(payload.get("text"), str):
-            parts.append({"kind": "text", "text": payload["text"]})
+        if message.get("type") == "user":
+            text = message.get("text")
+            if not (isinstance(text, str) and text.strip()):
+                text = payload.get("text") if isinstance(payload.get("text"), str) else ""
+            if text.strip():
+                parts.append({"kind": "text", "text": text})
         for part in message.get("content", []) or []:
             kind = part.get("type", "")
             if kind == "text":
@@ -158,6 +162,8 @@ def transcript(session_id: str, limit: int = 60) -> list[dict]:
                 parts.append({"kind": "tool",
                               "text": part.get("tool") or part.get("name") or "tool",
                               "status": part.get("state", {}).get("status", "")})
+        if not parts and message.get("error"):
+            parts.append({"kind": "error", "text": str(message["error"])[:400]})
         out.append({"id": message.get("id", ""), "role": message.get("type", ""),
                     "at": (message.get("time") or {}).get("created", 0), "parts": parts})
     return out
@@ -264,8 +270,11 @@ class Handler(BaseHTTPRequestHandler):
             import subprocess as _sp
             body = {"directory": str(Path.cwd())}
             model = (parse_qs(parsed.query).get("model") or [""])[0]
-            if model:
-                body["model"] = model
+            if model and "/" in model:
+                provider, _, name = model.partition("/")
+                body["model"] = {"id": name, "providerID": provider}
+            elif model:
+                body["model"] = {"id": model, "providerID": "opencode-go"}
             try:
                 res = _sp.run([str(OPENCODE_EXE), "api", "POST", "/api/session",
                                "-d", _json.dumps(body)],

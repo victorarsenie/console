@@ -220,7 +220,19 @@ function sessionRows() {
 
 function modelOf() {
   const current = (window.__sessions || []).find((s) => s.id === activeSession);
-  return current ? current.model : "unknown";
+  return current ? current.model : "";
+}
+
+function fillModels() {
+  const sel = document.getElementById("model-pick");
+  const list = window.__models || [];
+  if (!sel || !list.length) return;
+  const saved = localStorage.getItem("console.model")
+    || (window.__sessions || [])[0]?.model
+    || list[0];
+  const chosen = list.includes(saved) ? saved : list[0];
+  sel.innerHTML = list.map((m) =>
+    `<option value="${esc(m)}"${m === chosen ? " selected" : ""}>${esc(m)}</option>`).join("");
 }
 
 function renderTerminal() {
@@ -229,7 +241,8 @@ function renderTerminal() {
     <aside class="sess-pane">
       <div class="side-head">sessions <button data-act="session-new">+ new</button></div>
       <div class="side-list" id="sess-list">${sessionRows()}</div>
-      <div class="side-model">model<span id="sess-model">${esc(modelOf())}</span></div>
+      <div class="side-model">model<span id="sess-model">${esc(modelOf() || "no model")}</span>
+        <select id="model-pick" title="model for a new session"></select></div>
     </aside>
     <div class="gutter" id="gutter"></div>
     <section class="crt-term">
@@ -275,6 +288,7 @@ async function loadChat() {
         const who = m.role === "user" ? "you" : m.role === "assistant" ? "mu/th/ur" : m.role;
         const body = (m.parts || []).map((p) => {
           if (p.kind === "text") return `<div class="line">${esc(p.text)}</div>`;
+          if (p.kind === "error") return `<div class="line bad">${esc(p.text)}</div>`;
           if (p.kind === "reasoning") return `<div class="line dim">thinking... ${esc((p.text || "").slice(0, 90))}</div>`;
           return `<div class="line dim">[${esc(p.text)}]</div>`;
         }).join("");
@@ -302,6 +316,7 @@ function renderShell() {
   if (open === "terminal") {
     track.classList.add("console-mode");
     track.innerHTML = renderTerminal();
+    fillModels();
     return;
   }
   track.classList.remove("console-mode");
@@ -415,11 +430,18 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (event.target.closest("[data-act='session-new']")) {
-    fetch("/api/session/new", { method: "POST" }).then((r) => r.json()).then((d) => {
-      toast(d.ok ? "session created" : (d.message || "create failed"), !d.ok);
-      if (d.ok && d.session) { activeSession = d.session; loadSessions();
-fetch("/api/models").then((r) => r.json()).then((d) => { window.__models = d.models || []; }).catch(() => {}); setTimeout(loadChat, 800); render(); }
-    });
+    const pick = document.getElementById("model-pick");
+    const model = pick ? pick.value : (localStorage.getItem("console.model") || "");
+    fetch(`/api/session/new?model=${encodeURIComponent(model)}`, { method: "POST" })
+      .then((r) => r.json()).then((d) => {
+        toast(d.ok ? "session created" : (d.message || "create failed"), !d.ok);
+        if (d.ok && d.session) {
+          activeSession = d.session;
+          loadSessions();
+          setTimeout(loadChat, 900);
+          render();
+        }
+      });
     return;
   }
   const sessRow = event.target.closest("[data-session]");
@@ -472,6 +494,12 @@ fetch("/api/models").then((r) => r.json()).then((d) => { window.__models = d.mod
   }
 });
 
+document.addEventListener("change", (event) => {
+  if (event.target && event.target.id === "model-pick") {
+    localStorage.setItem("console.model", event.target.value);
+  }
+});
+
 document.addEventListener("mousedown", (event) => {
   if (!event.target.closest("#gutter")) return;
   const box = document.getElementById("console");
@@ -497,6 +525,11 @@ document.addEventListener("keydown", (event) => {
       const v = event.target.value.trim();
       if (v) api(`/api/card?action=add&title=${encodeURIComponent(v)}&project=`);
       event.target.value = "";
+    }
+    if (event.key === "Enter" && event.target.id === "chat-text") {
+      event.preventDefault();
+      window.__sendPrompt();
+      return;
     }
     if (event.key === "Enter" && event.target.id === "q") {
       const v = event.target.value.trim();
@@ -584,6 +617,10 @@ tick(); setInterval(tick, 1000);
 loadFlows();
 setTimeout(loadFlows, 600);
 loadSessions();
+fetch("/api/models").then((r) => r.json()).then((d) => {
+  window.__models = d.models || [];
+  fillModels();
+}).catch(() => {});
 setInterval(loadSessions, 20000);
 setInterval(() => { if (open === "terminal") loadChat(); }, 3000);
 poll(); setInterval(poll, 3000);
