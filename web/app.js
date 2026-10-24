@@ -200,6 +200,15 @@ function renderShell() {
         <div class="vmono">${bay.glyph}</div>
         <div class="vnum">${String(bay.number(state)).slice(0, 7)}</div>
       </div>
+      <div class="inside" style="display:none">
+        <div class="visual">
+          <div class="label">${bay.label}</div>
+          <div class="glyph">${bay.glyph}</div>
+          <div class="huge mid">${bay.number(state)}</div>
+          <div class="cap">${bay.unit(state) || bay.note}</div>
+        </div>
+        <div class="copy">${(bay.render || (() => ""))(state)}</div>
+      </div>
     </article>`;
   const focused = (bay, index) => {
     const number = bay.number(state);
