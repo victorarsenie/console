@@ -13,6 +13,7 @@ const ENGINES = {
 };
 let state = null;
 let lastSig = "";
+let lastRender = 0;
 let open = (new URLSearchParams(location.search).get("bay")) || "status";
 let results = [];
 const hist = [];
@@ -241,6 +242,7 @@ function bayVisual(id, s) {
 
 function render() {
   if (!state) return;
+  lastRender = Date.now();
   if (String(window.getSelection() || "").length > 0) return;
   renderShell();
   updateLive();
@@ -359,8 +361,14 @@ async function poll() {
     const res = await fetch("/api/state", { cache: "no-store" });
     state = await res.json();
     if (state.gpu && state.gpu.present) { hist.push(state.gpu.free_mib); if (hist.length > 90) hist.shift(); }
+    // numbers update in place; the DOM is rebuilt only on a real structural change,
+    // and then at most once a minute, so the bays stop blinking.
     const sig = structuralSig(state);
-    if (sig !== lastSig) { lastSig = sig; render(); } else { updateLive(); }
+    if (sig !== lastSig) {
+      lastSig = sig;
+      if (Date.now() - lastRender > 60000) { lastRender = Date.now(); render(); }
+      else { updateLive(); }
+    } else { updateLive(); }
   } catch (err) {
     $("#dot").className = "dot bad";
     toast("collector unreachable", true);
