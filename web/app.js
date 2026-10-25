@@ -308,14 +308,14 @@ function typeLast(log) {
   if (typeTimer) clearInterval(typeTimer);
   el.textContent = full.slice(0, shown);
   typeTimer = setInterval(() => {
-    shown = Math.min(full.length, shown + 2);
+    shown = Math.min(full.length, shown + 1);
     el.textContent = full.slice(0, shown);
     typedLen.set(key, shown);
-    if (shown % 6 === 0) cue.type();
+    if (shown % 3 === 0) cue.type();
     const near = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
     if (near) log.scrollTop = log.scrollHeight;
     if (shown >= full.length) { clearInterval(typeTimer); typeTimer = null; }
-  }, 18);
+  }, 24);
 }
 
 function paintLog() {
