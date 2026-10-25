@@ -96,8 +96,7 @@ export const cue = {
   // typewriter: a dry mechanical tick, quieter than a keystroke
   type: () => {
     typeFlip = !typeFlip;
-    tick(typeFlip ? 1250 : 1620, 18, 0.16, 1.6);
-    blip(typeFlip ? 640 : 820, 18, "square", 0.05);
+    tick(typeFlip ? 1250 : 1620, 18, 0.14, 1.6);
   },
   // standby: the machine's slow sonar while it works - low ping, faint echo
   think: () => tick(380 + Math.random() * 120, 70, 0.09, 3),
@@ -186,6 +185,12 @@ export function bootCue() {
     if (ctx && ctx.state === "running") { clearInterval(timer); fire(); }
     else if (++tries > 30) clearInterval(timer);
   }, 100);
+  const unlock = () => {
+    if (!ctx) return;
+    ctx.resume().then(fire).catch(() => {});
+  };
+  window.addEventListener("pointerdown", unlock, { once: true });
+  window.addEventListener("keydown", unlock, { once: true });
 }
 
 export function setMuted(value) {
