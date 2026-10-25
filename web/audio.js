@@ -66,7 +66,7 @@ function tick(freq = 2200, ms = 18, gain = 0.05, q = 6) {
 }
 
 export const cue = {
-  key: () => blip(1200 + Math.random() * 240, 28, "square", 0.05),
+  key: () => { blip(1100 + Math.random() * 300, 26, "square", 0.14); tick(2400, 12, 0.05, 2); },
   bay: () => { blip(660, 60, "triangle", 0.08); setTimeout(() => blip(880, 70, "triangle", 0.07), 70); },
   ok: () => blip(990, 90, "sine", 0.1),
   alert: () => { blip(320, 140, "sawtooth", 0.1, -80); setTimeout(() => blip(220, 200, "sawtooth", 0.1, -60), 150); },
