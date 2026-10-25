@@ -94,9 +94,13 @@ export const cue = {
     });
   },
   // typewriter: a dry mechanical tick, quieter than a keystroke
-  type: () => { typeFlip = !typeFlip; tick(typeFlip ? 1250 : 1620, 16, 0.055, 1.7); },
+  type: () => {
+    typeFlip = !typeFlip;
+    tick(typeFlip ? 1250 : 1620, 18, 0.16, 1.6);
+    blip(typeFlip ? 640 : 820, 18, "square", 0.05);
+  },
   // standby: the machine's slow sonar while it works - low ping, faint echo
-  think: () => tick(380 + Math.random() * 120, 70, 0.03, 3),
+  think: () => tick(380 + Math.random() * 120, 70, 0.09, 3),
 };
 
 export function start() {
@@ -121,7 +125,7 @@ export function standbyOn() {
   g.gain.value = 0.0001;
   const lp = ctx.createBiquadFilter();
   lp.type = "lowpass";
-  lp.frequency.value = 280;
+  lp.frequency.value = 750;
   const osc = ctx.createOscillator();
   osc.type = "sawtooth";
   osc.frequency.value = 72;
@@ -129,12 +133,12 @@ export function standbyOn() {
   osc2.type = "triangle";
   osc2.frequency.value = 146;
   const g2 = ctx.createGain();
-  g2.gain.value = 0.3;
+  g2.gain.value = 0.5;
   const noise = ctx.createBufferSource();
   noise.buffer = noiseBuffer(2);
   noise.loop = true;
   const ng = ctx.createGain();
-  ng.gain.value = 0.15;
+  ng.gain.value = 0.28;
   osc.connect(lp);
   osc2.connect(g2).connect(lp);
   noise.connect(ng).connect(lp);
@@ -145,7 +149,7 @@ export function standbyOn() {
   lg.gain.value = 0.005;
   lfo.connect(lg).connect(g.gain);
   osc.start(); osc2.start(); noise.start(); lfo.start();
-  g.gain.exponentialRampToValueAtTime(0.07, ctx.currentTime + 0.4);
+  g.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.4);
   standby = { osc, osc2, noise, lfo, g };
 }
 
