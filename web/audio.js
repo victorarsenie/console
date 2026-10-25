@@ -78,20 +78,22 @@ export const cue = {
     const lp = ctx.createBiquadFilter();
     lp.type = "lowpass";
     lp.frequency.setValueAtTime(180, ctx.currentTime);
-    lp.frequency.linearRampToValueAtTime(900, ctx.currentTime + 1.4);
+    lp.frequency.linearRampToValueAtTime(1800, ctx.currentTime + 1.6);
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, ctx.currentTime);
-    g.gain.linearRampToValueAtTime(0.06, ctx.currentTime + 0.6);
-    g.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 1.8);
+    g.gain.linearRampToValueAtTime(0.13, ctx.currentTime + 0.5);
+    g.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 2.0);
     swell.connect(lp).connect(g).connect(master);
     swell.start();
-    swell.stop(ctx.currentTime + 1.9);
-    [48, 60, 72, 90].forEach((f, i) => {
+    swell.stop(ctx.currentTime + 2.1);
+    [60, 72, 90, 120].forEach((f, i) => {
       setTimeout(() => {
-        blip(f, 420, "sawtooth", 0.08);
-        tick(300 + i * 120, 120, 0.04, 2);
-      }, i * 380);
+        blip(f, 420, "sawtooth", 0.14);
+        blip(f * 4, 260, "triangle", 0.05);
+        tick(500 + i * 260, 120, 0.05, 2);
+      }, i * 360);
     });
+    setTimeout(() => blip(880, 180, "sine", 0.07), 1500);
   },
   // typewriter: a dry mechanical tick, quieter than a keystroke
   type: () => {

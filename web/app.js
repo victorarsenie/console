@@ -741,7 +741,7 @@ function typeBoot() {
     node.textContent = lines[line].slice(0, ++char);
     if (char >= lines[line].length) { line++; char = 0; node = null; setTimeout(step, 150); }
     else setTimeout(step, 19);
-    if (char === 1) cue.key();
+    if (char === 1 && line < 2) cue.key();
   }
   step();
 }
