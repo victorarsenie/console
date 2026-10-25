@@ -186,7 +186,8 @@ async function loadSessions() {
 }
 
 function openBay(id) {
-  if (id !== open) cue.bay();
+  if (id === open) return;
+  cue.bay();
   open = id;
   lastLogHtml = "";
   render();
