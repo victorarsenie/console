@@ -395,6 +395,6 @@ main.stage::after { content: ""; position: absolute; inset: 0; pointer-events: n
   border-radius: 3px; opacity: 0; transition: opacity .15s ease; cursor: pointer; }
 .baycard:not(.open) .solo-btn { display: none; }
 .baycard.open .solo-btn { opacity: 0; }
-.baycard.open:hover .solo-btn { opacity: .85; }
+.baycard .solo-btn:hover { opacity: 1; }
 .baycard .solo-btn:hover { color: var(--amber); border-color: var(--amber); }
 .track.solo .baycard:hover .solo-btn { color: var(--amber); border-color: var(--amber); }
