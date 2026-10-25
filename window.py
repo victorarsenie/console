@@ -174,6 +174,57 @@ def transcript(session_id: str, limit: int = 60) -> list[dict]:
     return out
 
 
+
+# ---- event stream: the local opencode server offers SSE on an ephemeral port ----
+def _listen_ports():
+    import subprocess as sp
+    try:
+        out = sp.run(["netstat", "-ano", "-p", "tcp"], capture_output=True, text=True,
+                     encoding="utf-8", errors="replace", timeout=15,
+                     creationflags=0x08000000).stdout
+    except Exception:
+        return []
+    ports = []
+    for line in out.splitlines():
+        parts = line.split()
+        if len(parts) >= 4 and parts[3] == "LISTENING" and parts[1].startswith("127.0.0.1:"):
+            try:
+                ports.append(int(parts[1].rsplit(":", 1)[1]))
+            except ValueError:
+                pass
+    return sorted(set(ports))
+
+
+def _auth_header():
+    import base64
+    try:
+        cfg = json.loads((Path.home() / ".config" / "opencode" / "service.json")
+                         .read_text(encoding="utf-8"))
+        pw = cfg.get("password", "")
+    except Exception:
+        pw = ""
+    return "Basic " + base64.b64encode(f"opencode:{pw}".encode()).decode()
+
+
+def event_port():
+    """First local port that answers /api/event as SSE. Cached per process."""
+    if getattr(event_port, "_port", None):
+        return event_port._port
+    import urllib.request as ur
+    header = _auth_header()
+    for port in _listen_ports():
+        try:
+            req = ur.Request(f"http://127.0.0.1:{port}/api/event",
+                             headers={"Authorization": header})
+            with ur.urlopen(req, timeout=0.8) as res:
+                if "text/event-stream" in (res.headers.get("content-type") or ""):
+                    event_port._port = port
+                    return port
+        except Exception:
+            continue
+    return None
+
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code: int, body: bytes, ctype: str) -> None:
         self.send_response(code)
@@ -193,6 +244,27 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(collector.collect())
             except Exception as exc:
                 self._json({"error": str(exc)}, 500)
+            return
+        if path == "/api/stream":
+            import urllib.request as ur
+            port = event_port()
+            if not port:
+                self._json({"ok": False, "message": "no event stream"}, 503)
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            try:
+                req = ur.Request(f"http://127.0.0.1:{port}/api/event",
+                                 headers={"Authorization": _auth_header()})
+                with ur.urlopen(req, timeout=900) as upstream:
+                    for raw in upstream:
+                        self.wfile.write(raw)
+                        self.wfile.flush()
+            except Exception:
+                return
             return
         if path == "/api/models":
             import subprocess as _sp

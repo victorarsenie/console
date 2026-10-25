@@ -757,6 +757,33 @@ fetch("/api/models").then((r) => r.json()).then((d) => {
   fillModels();
 }).catch(() => {});
 setInterval(loadSessions, 20000);
+let stream = null;
+let lastEventLoad = 0;
+
+function openStream() {
+  if (stream || typeof EventSource === "undefined") return;
+  try { stream = new EventSource("/api/stream"); } catch (err) { return; }
+  stream.onmessage = (event) => {
+    if (open !== "terminal") return;
+    let sid = "";
+    try {
+      const payload = JSON.parse(event.data);
+      const data = payload.data || {};
+      sid = data.sessionID || (data.info && data.info.sessionID) || "";
+    } catch (err) { /* unknown frame: treat as relevant */ }
+    if (sid && sid !== activeSession) return;
+    const now = Date.now();
+    if (now - lastEventLoad < 250) return;
+    lastEventLoad = now;
+    loadChat();
+  };
+  stream.onerror = () => {
+    if (stream) { stream.close(); stream = null; }
+    setTimeout(openStream, 5000);
+  };
+}
+
+openStream();
 setInterval(() => { if (open === "terminal") loadChat(); }, 3000);
 setInterval(() => { if (open === "terminal" && Date.now() < activeUntil) loadChat(); }, 1200);
 setInterval(() => { if (isBusy && open === "terminal") cue.think(); }, 1200);
