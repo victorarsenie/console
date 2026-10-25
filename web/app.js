@@ -1,5 +1,5 @@
 // Console theatre: five bays, one in focus. Same API, different shape.
-import { cue, start as startAudio, bootCue, audioState, setMuted, isMuted } from "/audio.js";
+import { cue, start as startAudio, bootCue, audioState, standbyOn, standbyOff, setMuted, isMuted } from "/audio.js";
 
 const $ = (sel) => document.querySelector(sel);
 const fmt = (n) => (n ?? 0).toLocaleString();
@@ -359,7 +359,8 @@ async function loadChat() {
       && lastMsg.role === "assistant";
     const running = parts.some((p) => p.kind === "tool" && p.status === "running");
     const busy = thinking || running || Date.now() < activeUntil;
-    if (busy && !isBusy) cue.think();
+    if (busy && !isBusy) { standbyOn(); cue.think(); }
+    if (!busy && isBusy) standbyOff();
     isBusy = busy;
     if (log) log.dataset.busy = busy ? "1" : "0";
     paintLog();
@@ -787,7 +788,7 @@ function openStream() {
 openStream();
 setInterval(() => { if (open === "terminal") loadChat(); }, 3000);
 setInterval(() => { if (open === "terminal" && Date.now() < activeUntil) loadChat(); }, 1200);
-setInterval(() => { if (isBusy && open === "terminal") cue.think(); }, 1200);
+setInterval(() => { if (isBusy && open === "terminal") cue.think(); }, 1600);
 poll(); setInterval(poll, 3000);
 
 $("#prev").addEventListener("click", () => step(-1));

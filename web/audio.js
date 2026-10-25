@@ -94,14 +94,9 @@ export const cue = {
     });
   },
   // typewriter: a dry mechanical tick, quieter than a keystroke
-  type: () => tick(1250 + Math.random() * 400, 18, 0.06, 1.4),
+  type: () => { typeFlip = !typeFlip; tick(typeFlip ? 1250 : 1620, 16, 0.055, 1.7); },
   // standby: the machine's slow sonar while it works - low ping, faint echo
-  think: () => {
-    blip(72, 380, "sawtooth", 0.075);
-    blip(146, 320, "triangle", 0.035);
-    blip(220, 260, "sine", 0.018);
-    tick(360, 140, 0.03, 1.2);
-  },
+  think: () => tick(380 + Math.random() * 120, 70, 0.03, 3),
 };
 
 export function start() {
@@ -114,6 +109,58 @@ export function start() {
     window.addEventListener("pointerdown", kick, { once: true });
     window.addEventListener("keydown", kick, { once: true });
   }
+}
+
+
+let standby = null;
+let typeFlip = false;
+
+export function standbyOn() {
+  if (standby || !ensure() || muted) return;
+  const g = ctx.createGain();
+  g.gain.value = 0.0001;
+  const lp = ctx.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = 280;
+  const osc = ctx.createOscillator();
+  osc.type = "sawtooth";
+  osc.frequency.value = 72;
+  const osc2 = ctx.createOscillator();
+  osc2.type = "triangle";
+  osc2.frequency.value = 146;
+  const g2 = ctx.createGain();
+  g2.gain.value = 0.3;
+  const noise = ctx.createBufferSource();
+  noise.buffer = noiseBuffer(2);
+  noise.loop = true;
+  const ng = ctx.createGain();
+  ng.gain.value = 0.15;
+  osc.connect(lp);
+  osc2.connect(g2).connect(lp);
+  noise.connect(ng).connect(lp);
+  lp.connect(g).connect(master);
+  const lfo = ctx.createOscillator();
+  lfo.frequency.value = 0.6;
+  const lg = ctx.createGain();
+  lg.gain.value = 0.005;
+  lfo.connect(lg).connect(g.gain);
+  osc.start(); osc2.start(); noise.start(); lfo.start();
+  g.gain.exponentialRampToValueAtTime(0.07, ctx.currentTime + 0.4);
+  standby = { osc, osc2, noise, lfo, g };
+}
+
+export function standbyOff() {
+  if (!standby) return;
+  const s = standby;
+  standby = null;
+  try {
+    s.g.gain.cancelScheduledValues(ctx.currentTime);
+    s.g.gain.setValueAtTime(Math.max(s.g.gain.value, 0.0001), ctx.currentTime);
+    s.g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
+    setTimeout(() => {
+      try { s.osc.stop(); s.osc2.stop(); s.noise.stop(); s.lfo.stop(); } catch (err) {}
+    }, 600);
+  } catch (err) {}
 }
 
 export function audioState() {
