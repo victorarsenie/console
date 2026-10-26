@@ -225,6 +225,27 @@ def event_port():
     return None
 
 
+
+def mcp_status():
+    """MCP servers and their state, from the running opencode server."""
+    import urllib.request as ur
+    port = event_port()
+    if not port:
+        return []
+    try:
+        req = ur.Request(f"http://127.0.0.1:{port}/api/mcp",
+                         headers={"Authorization": _auth_header()})
+        with ur.urlopen(req, timeout=5) as res:
+            data = json.loads(res.read().decode("utf-8", "replace")).get("data", [])
+    except Exception:
+        return []
+    out = []
+    for item in data:
+        st = item.get("status") or {}
+        out.append({"name": item.get("name", "?"), "status": st.get("status", "unknown")})
+    return out
+
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code: int, body: bytes, ctype: str) -> None:
         self.send_response(code)
@@ -265,6 +286,9 @@ class Handler(BaseHTTPRequestHandler):
                         self.wfile.flush()
             except Exception:
                 return
+            return
+        if path == "/api/mcp":
+            self._json({"servers": mcp_status()})
             return
         if path == "/api/models":
             import subprocess as _sp

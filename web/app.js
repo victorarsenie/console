@@ -57,12 +57,19 @@ function captureBar() {
 
 function renderStatus(s) {
   const needs = s.needs || [];
-  const list = needs.length
-    ? needs.map((n) => `<div class="row ${n.kind === "alert" ? "bad" : ""}"> - ${esc(n.text)}</div>`).join("")
+  const mcp = window.__mcp || [];
+  const down = mcp.filter((m) => m.status !== "connected");
+  const mcpBad = down.map((m) => `<div class="row bad"> - mcp ${esc(m.name)}: ${esc(m.status)}</div>`).join("");
+  const list = (needs.length || mcpBad)
+    ? mcpBad + needs.map((n) => `<div class="row ${n.kind === "alert" ? "bad" : ""}"> - ${esc(n.text)}</div>`).join("")
     : `<div class="row ok">nothing waiting on you</div>`;
+  const mcpRows = mcp.length
+    ? mcp.map((m) => `<div class="row ${m.status === "connected" ? "ok" : "bad"}"> - ${esc(m.name)}  ${esc(m.status)}</div>`).join("")
+    : `<div class="row dim">no data</div>`;
   const log = (s.activity || []).map(esc).join("\n") || "idle";
   const cap = captureBar();
   return cap + `<div class="panel"><h3>needs you</h3>${list}</div>
+          <div class="panel"><h3>mcp servers</h3>${mcpRows}</div>
           <div class="panel"><h3>timeline</h3>${(s.timeline || []).map((e) =>
             `<div class="row dim">${e.kind} - ${esc(e.text)}</div>`).join("") || `<div class="row dim">idle</div>`}</div>`;
 }
@@ -688,6 +695,18 @@ async function poll() {
     if (state.gpu && state.gpu.present) { hist.push(state.gpu.free_mib); if (hist.length > 90) hist.shift(); }
     // numbers update in place; the DOM is rebuilt only on a real structural change,
     // and then at most once a minute, so the bays stop blinking.
+    try {
+      const mres = await fetch("/api/mcp", { cache: "no-store" });
+      const mdata = await mres.json();
+      const servers = mdata.servers || [];
+      const msig = JSON.stringify(servers);
+      window.__mcp = servers;
+      if (msig !== window.__mcpSig) {
+        window.__mcpSig = msig;
+        if (servers.some((s) => s.status !== "connected")) cue.alert();
+        if (open === "status") render();
+      }
+    } catch (err) { /* keep the last known state */ }
     const sig = structuralSig(state);
     if (sig !== lastSig && state.alerts && state.alerts.length) cue.alert();
     if (sig !== lastSig) {
